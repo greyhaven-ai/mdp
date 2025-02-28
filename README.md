@@ -11,7 +11,19 @@ MDP (Markdown Data Package) is a format that combines Markdown content with YAML
 - **Format agnostic**: Works with any text or data format while maintaining consistent metadata
 - **Extensible**: Flexible schema allows easy addition of new metadata fields
 - **Version controlled**: Works seamlessly with git and other version control systems
-- **Content-addressable**: Optional IPFS integration for content-addressed documents
+- **Content-addressable**: Supports content-addressed documents with unique identifiers
+
+## Core Functionality
+
+MDP provides a comprehensive framework for working with metadata-rich documents:
+
+- **Document Management**: Create, read, update, and validate markdown documents with structured metadata
+- **Collections**: Organize related documents with shared properties and relationships
+- **Schema Validation**: Ensure metadata consistency with customizable schema validation
+- **Conflict Resolution**: Intelligent merging and conflict resolution for collaborative document editing
+- **LSP Support**: Language Server Protocol integration for enhanced editing capabilities
+- **CLI Tools**: Command-line utilities for document processing and management
+- **Model Context Protocol (MCP)**: Integration with AI assistants and models
 
 ## Core vs Extended Functionality
 
@@ -87,11 +99,9 @@ print(doc.metadata)      # Complete metadata dictionary
 
 ```python
 from mdp import Collection, Document
-import uuid
 
-# Create a collection with a UUID identifier
-collection_id = str(uuid.uuid4())
-collection = Collection("Example Collection", collection_id=collection_id, collection_id_type="uuid")
+# Create a collection
+collection = Collection("Example Collection")
 
 # Add documents to the collection
 doc1 = Document.create(title="First Document", content="# First Document")
@@ -102,28 +112,133 @@ collection.add_document(doc2)
 
 # Save all documents in the collection
 collection.save_all("documents/")
+
+# Create a collection from a directory
+from pathlib import Path
+dir_collection = Collection.from_directory(
+    directory=Path("my_documents"),
+    name="My Directory Collection",
+    recursive=True
+)
+```
+
+### Versioning and Conflict Resolution
+
+MDP provides tools for managing document versions and resolving conflicts:
+
+```python
+from mdp import Document
+
+# Load a document
+doc = Document.from_file("document.mdp")
+
+# Create a new version
+doc.bump_version(version_type="minor")  # Increment the minor version number
+doc.save()
+
+# Create a version snapshot
+version_path = doc.create_version(
+    version="1.1.0", 
+    description="Added new section"
+)
+
+# Get version history
+versions = doc.get_versions()
+
+# Compare with a previous version
+diff = doc.compare_with_version("1.0.0")
+
+# Rollback to a previous version
+doc.rollback_to_version("1.0.0")
+
+# Create a branch
+branch_doc = doc.create_branch("feature-branch")
+
+# Merge changes from a branch
+doc.merge_from_branch(branch_doc)
+
+# Check for conflicts with another document
+other_doc = Document.from_file("other_version.mdp")
+has_conflicts, conflict_summary = doc.check_for_conflicts(other_doc)
+
+# Auto-merge documents
+merged_doc = doc.auto_merge(other_doc, "merged.mdp")
+
+# Create a conflict resolution file for manual editing
+conflict_file = doc.create_conflict_resolution_file(other_doc, "conflicts.mdp")
+
+# Resolve conflicts from an edited conflict file
+resolved_doc = Document.resolve_from_conflict_file("conflicts.mdp", "resolved.mdp")
+```
+
+### Schema Validation
+
+MDP provides schema validation for document metadata:
+
+```python
+from mdp import Document
+from mdp.core import validate_metadata
+import json
+import os
+
+# Load a schema 
+schema_path = os.path.join("schema", "custom_schema.json")
+
+# Validate document metadata against schema
+doc = Document.from_file("document.mdp")
+is_valid = validate_metadata(doc.metadata, schema_path)
 ```
 
 ### MCP (Model Context Protocol) Integration
 
-MDP includes support for the Model Context Protocol (MCP), making it easy to serve and access documents via MCP-compatible clients:
+MDP includes support for the Model Context Protocol (MCP), making it easy to integrate with AI models and assistants:
 
 ```python
+# Import the MCP server module
 from mdp.mcp.server import create_mcp_server
-from mdp.mcp.client import MCPClient
 
-# Server-side: Create and start an MCP server
-server = create_mcp_server("My Document Server") 
+# Create and start an MCP server with document support
+server = create_mcp_server("Document Server")
 server.run()
+```
 
-# Client-side: Connect to the server and retrieve documents
-async with MCPClient("http://localhost:8000") as client:
-    # Create a document
-    doc = Document.create(title="Sample", content="# Sample")
-    result = await client.create_document(doc)
-    
-    # Search documents
-    results = await client.search_documents("sample")
+## Command-Line Interface
+
+MDP includes a CLI for common operations:
+
+```bash
+# Display information about an MDP document
+mdp info document.mdp
+
+# Create a new MDP document
+mdp create document.mdp --title "My Document" --author "Author Name"
+
+# Work with collections
+mdp collection create --name "My Collection" --path collections/
+mdp collection list collections/my_collection/
+
+# Work with document versions
+mdp version create document.mdp --message "Updated content"
+mdp version list document.mdp
+mdp version show document.mdp --version 1.0.0
+mdp version compare document.mdp --from 1.0.0 --to 1.1.0
+mdp version rollback document.mdp --to 1.0.0
+
+# Check and resolve conflicts
+mdp conflict check document1.mdp document2.mdp
+mdp conflict merge document1.mdp document2.mdp --output merged.mdp
+```
+
+## Language Server Support
+
+MDP provides Language Server Protocol (LSP) support for enhanced editing capabilities:
+
+```bash
+# Start the MDP language server
+mdp lsp serve
+
+# In your editor configuration, connect to the MDP language server
+# for real-time validation, auto-completion, and other features
 ```
 
 ## Features
@@ -160,158 +275,74 @@ doc1 = Document.from_file("document1.mdp")
 doc2 = Document.from_file("document2.mdp")
 
 # Create a relationship
-doc1.add_relationship(doc2, relationship_type="references")
+doc1.add_relationship(
+    target=doc2,
+    relationship_type="references",
+    title="Referenced Document",
+    description="This document references important concepts from the target"
+)
 
 # Save the relationship
 doc1.save()
+
+# Get related documents
+related_docs = doc1.get_related_documents(relationship_type="references")
 ```
 
-### Collection ID Types
+### Collection Management
 
-MDP supports typed collection identifiers, allowing you to specify the format of collection IDs:
+MDP provides powerful tools for working with collections of documents:
 
 ```python
 from mdp import Collection, Document
+from pathlib import Path
 
-# Create a collection with a UUID identifier
-collection = Collection(
-    name="Example Collection",
-    collection_id="550e8400-e29b-41d4-a716-446655440000",
-    collection_id_type="uuid"
+# Create a collection
+collection = Collection("Example Collection")
+
+# Add documents to the collection
+doc1 = Document.create(title="First Document", content="# First Document")
+doc2 = Document.create(title="Second Document", content="# Second Document")
+collection.add_document(doc1)
+collection.add_document(doc2)
+
+# Create a collection from a directory
+dir_collection = Collection.from_directory(
+    directory=Path("my_documents"),
+    name="My Directory Collection",
+    recursive=True
 )
 
-# Create a collection with an IPFS CID
-ipfs_collection = Collection(
-    name="IPFS Collection",
-    collection_id="QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco",
-    collection_id_type="cid"
-)
+# Find documents in a collection
+found_doc = collection.get_document_by_title("First Document")
+by_uuid = collection.get_document_by_uuid("550e8400-e29b-41d4-a716-446655440000")
 
-# Create a document in a collection
-doc = Document.create(
-    title="Collection Document",
-    content="# Collection Document",
-    collection="Example Collection",
-    collection_id="550e8400-e29b-41d4-a716-446655440000",
-    collection_id_type="uuid"
-)
+# Filter documents
+tag_docs = collection.filter(lambda doc: "important" in doc.tags)
+
+# Get the document hierarchy
+hierarchy = collection.get_hierarchy()
+
+# Save all documents in a collection
+collection.save_all(Path("output_directory"))
+
+# Export collection with metadata
+collection.export(Path("exported_collection"))
 ```
 
-Example MDP file with typed collection ID:
+Example MDP file with collection metadata:
 
 ```markdown
 ---
 title: Collection Document
 collection: Example Collection
 collection_id: 550e8400-e29b-41d4-a716-446655440000
-collection_id_type: uuid
 ---
 
 # Collection Document
 
-This document belongs to a collection with a UUID identifier.
+This document belongs to a collection.
 ```
-
-### IPFS Integration
-
-MDP supports IPFS Content Identifiers (CIDs) for content-addressed documents:
-
-```python
-from mdp import Document
-import ipfshttpclient
-
-# Connect to IPFS
-client = ipfshttpclient.connect()
-
-# Create a document
-doc = Document.create(
-    title="IPFS Example",
-    content="# IPFS Integration\n\nThis document is stored on IPFS.",
-    author="MDP Team",
-    tags=["ipfs", "content-addressing"]
-)
-
-# Save the document to IPFS
-result = client.add_str(doc.to_string())
-cid = result['Hash']
-
-# Add the CID to the document metadata
-doc.metadata['cid'] = cid
-doc.save("ipfs_example.mdp")
-
-# Create a relationship using IPFS CID
-another_doc = Document.from_file("another_document.mdp")
-another_doc.add_relationship(
-    reference=cid,
-    relationship_type="related",
-    title="IPFS Example",
-    is_ipfs_cid=True
-)
-another_doc.save()
-```
-
-Example MDP file with IPFS CID:
-
-```markdown
----
-title: IPFS Example
-author: MDP Team
-created_at: 2023-07-15
-tags:
-  - ipfs
-  - content-addressing
-cid: QmX5fAjbxbx8pbDcDmyNJS5gBXZcB3zrR9upt9yKvkX4vR
-relationships:
-  - type: related
-    cid: QmY7Yh4UquoXHLPFo2XbhXkhBvFoPwmQUSa92pxnxjQuPU
-    title: Related IPFS Document
----
-
-# IPFS Integration
-
-This document is stored on IPFS with content addressing.
-```
-
-### Format Conversion
-
-MDP includes utilities for converting between different formats:
-
-```python
-from mdp import Document
-from mdp.converter import convert_to_html, convert_to_pdf
-
-# Convert MDP to other formats
-doc = Document.from_file("document.mdp")
-convert_to_html(doc, "document.html")
-convert_to_pdf(doc, "document.pdf")
-
-# Import from other formats
-from mdp.converter import convert_from_markdown, convert_from_html
-doc1 = convert_from_markdown("document.md")
-doc2 = convert_from_html("document.html")
-```
-
-## Command-Line Interface
-
-MDP includes a CLI for common operations:
-
-```bash
-# Convert MDP files to HTML
-mdp convert document.mdp --format html --output document.html
-
-# Show document information
-mdp info document.mdp
-
-# Create a collection from MDP files
-mdp collection create documents/ collection.json --recursive
-```
-
-## Ecosystem
-
-MDP is part of a broader ecosystem for document management:
-
-- **MDP Format**: The core file format specification (this library)
-- **Datapack**: A platform for document management that uses MDP as its standard document format
 
 ## License
 
