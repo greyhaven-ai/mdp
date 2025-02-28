@@ -1,0 +1,212 @@
+---
+title: "Content Addressing with IPFS and MDP"
+author: "MDP Team"
+version: "1.0.0"
+created_at: "2024-07-01"
+updated_at: "2024-07-15"
+tags: ["tutorial", "ipfs", "content-addressing", "distributed"]
+status: "published"
+uuid: "c1d2e3f4-g5h6-4372-i789-jklmnop123456"
+collection: "MDP Documentation"
+collection_id: "mdp-docs-2024"
+collection_id_type: "string"
+position: 4
+cid: "QmX5fAjbxbx8pbDcDmyNJS5gBXZcB3zrR9upt9yKvkX4vR"
+relationships:
+  - type: "parent"
+    id: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+    title: "Getting Started with MDP"
+  - type: "related"
+    cid: "QmY7Yh4UquoXHLPFo2XbhXkhBvFoPwmQUSa92pxnxjQuPU"
+    title: "IPFS Configuration Guide"
+  - type: "related"
+    uri: "ipfs://QmZ8Yh4UquoXHLPFo2XbhXkhBvFoPwmQUSa92pxnxjQuPU"
+    title: "Document Addressed by IPFS URI"
+---
+
+# Content Addressing with IPFS and MDP
+
+MDP supports content addressing through IPFS (InterPlanetary File System), enabling documents to be referenced by their content rather than location.
+
+## What is Content Addressing?
+
+Content addressing is a method of identifying documents by their content rather than by their location or name. This approach has several advantages:
+
+- **Integrity**: The content hash verifies document integrity
+- **Deduplication**: Identical content has the same identifier
+- **Permanence**: Content remains accessible regardless of location changes
+- **Distributed Storage**: Content can be served from any node in the network
+
+## IPFS Integration in MDP
+
+MDP supports IPFS through several mechanisms:
+
+1. **CID Metadata**: The `cid` field in the document metadata
+2. **IPFS URI Format**: The `ipfs://CID` URI format for references
+3. **CID Collection IDs**: Using IPFS CIDs as collection identifiers
+4. **CID Relationships**: References to related documents via CIDs
+
+### CID Metadata Field
+
+The `cid` field in the metadata contains the IPFS Content Identifier:
+
+```yaml
+cid: "QmX5fAjbxbx8pbDcDmyNJS5gBXZcB3zrR9upt9yKvkX4vR"
+```
+
+### IPFS URI Format
+
+IPFS URIs can be used in relationship references:
+
+```yaml
+relationships:
+  - type: "related"
+    uri: "ipfs://QmY7Yh4UquoXHLPFo2XbhXkhBvFoPwmQUSa92pxnxjQuPU"
+    title: "Related Document"
+```
+
+### IPFS CID Collection IDs
+
+Collections can be identified by IPFS CIDs, enabling content-addressed collections:
+
+```yaml
+collection: "Distributed Documentation"
+collection_id: "QmZ9Yh4UquoXHLPFo2XbhXkhBvFoPwmQUSa92pxnxjQuPU"
+collection_id_type: "cid"
+```
+
+## Working with IPFS in the MDP Package
+
+The MDP Python package provides tools for working with IPFS:
+
+```python
+import mdp
+from mdp.integrations import ipfs
+
+# Load a document
+doc = mdp.Document.load("my_document.mdp")
+
+# Generate CID for a document
+cid = ipfs.generate_cid(doc)
+doc.metadata["cid"] = cid
+doc.save()
+
+# Store document in IPFS
+ipfs.add_document(doc)
+
+# Create a content-addressed collection
+collection_cid = ipfs.create_collection(
+    name="Distributed Documentation",
+    documents=[doc1, doc2, doc3]
+)
+
+# Add document to a content-addressed collection
+doc.metadata["collection"] = "Distributed Documentation"
+doc.metadata["collection_id"] = collection_cid
+doc.metadata["collection_id_type"] = "cid"
+doc.save()
+
+# Retrieve document from IPFS
+retrieved_doc = ipfs.get_document("QmX5fAjbxbx8pbDcDmyNJS5gBXZcB3zrR9upt9yKvkX4vR")
+
+# Get all documents in a collection by CID
+collection_docs = ipfs.get_collection_documents(collection_cid)
+
+# Get all documents referenced by IPFS CIDs
+related_docs = ipfs.get_related_documents(doc)
+```
+
+## Setting Up IPFS for MDP
+
+To work with IPFS and MDP, you'll need:
+
+1. **IPFS Node**: Install and run an IPFS node
+2. **IPFS API**: Configure the IPFS API endpoint
+3. **IPFS Gateway**: (Optional) Configure an IPFS gateway for web access
+
+### Configuration Example
+
+```python
+# Configure IPFS integration
+ipfs.configure(
+    api_url="http://localhost:5001/api/v0",
+    gateway_url="https://ipfs.io/ipfs/"
+)
+```
+
+## Content-Addressed Collections
+
+Content-addressed collections offer unique advantages:
+
+1. **Immutable Collection References**: The CID guarantees the collection's contents
+2. **Distributed Storage**: Collections can be stored across the IPFS network
+3. **Global Accessibility**: Collections can be accessed from anywhere via IPFS
+
+### Example: Creating a Content-Addressed Collection
+
+```python
+import mdp
+from mdp.integrations import ipfs
+
+# Create documents
+doc1 = mdp.Document.create("Chapter 1.mdp", "Chapter 1 content...")
+doc2 = mdp.Document.create("Chapter 2.mdp", "Chapter 2 content...")
+doc3 = mdp.Document.create("Chapter 3.mdp", "Chapter 3 content...")
+
+# Get CIDs for each document
+doc1.metadata["cid"] = ipfs.generate_cid(doc1)
+doc2.metadata["cid"] = ipfs.generate_cid(doc2)
+doc3.metadata["cid"] = ipfs.generate_cid(doc3)
+
+# Store documents in IPFS
+ipfs.add_document(doc1)
+ipfs.add_document(doc2)
+ipfs.add_document(doc3)
+
+# Create a collection with CID
+collection = mdp.Collection(
+    name="IPFS Documentation",
+    description="Documentation stored on IPFS"
+)
+collection.add_document(doc1, position=1)
+collection.add_document(doc2, position=2)
+collection.add_document(doc3, position=3)
+
+# Get CID for the collection and set it as the collection ID
+collection_cid = ipfs.generate_collection_cid(collection)
+collection.id = collection_cid
+collection.id_type = "cid"
+
+# Update document metadata with collection info
+for doc in [doc1, doc2, doc3]:
+    doc.metadata["collection"] = "IPFS Documentation"
+    doc.metadata["collection_id"] = collection_cid
+    doc.metadata["collection_id_type"] = "cid"
+    doc.save()
+
+# Store the collection in IPFS
+ipfs.add_collection(collection)
+```
+
+## Benefits for Document Management
+
+Content addressing with IPFS offers several benefits for document management:
+
+1. **Version Immutability**: Each version has a unique CID
+2. **Distributed Storage**: Documents can be stored across multiple nodes
+3. **Offline Access**: Documents can be accessed without central servers
+4. **Content Verification**: The CID guarantees content integrity
+5. **Collection Integrity**: CID-identified collections ensure consistent references
+
+## Security Considerations
+
+When using IPFS with MDP, consider these security aspects:
+
+- **Content Publicity**: Content on IPFS is public by default
+- **Encryption**: Encrypt sensitive content before adding to IPFS
+- **Node Trust**: Consider running your own IPFS node for sensitive data
+- **Gateway Security**: Use trusted IPFS gateways
+
+## Conclusion
+
+Content addressing with IPFS enhances MDP's capabilities for distributed document management. By using typed collection identifiers with IPFS CIDs, MDP documents and collections gain content integrity verification, permanence, and distributed storage capabilities. 

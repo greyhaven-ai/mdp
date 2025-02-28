@@ -1,0 +1,110 @@
+---
+title: "Working with MDP Relationships"
+author: "MDP Team"
+version: "1.0.0"
+created_at: "2024-07-01"
+updated_at: "2024-07-01"
+tags: ["tutorial", "relationships", "advanced"]
+status: "published"
+uuid: "a8b7c6d5-e4f3-4372-9567-abcdef123456"
+collection: "MDP Documentation"
+collection_id: "mdp-docs-2024"
+position: 2
+relationships:
+  - type: "parent"
+    id: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+    title: "Getting Started with MDP"
+  - type: "related"
+    path: "collections.mdp"
+    title: "Working with MDP Collections"
+    description: "Learn about organizing documents into collections"
+  - type: "child"
+    id: "55e44333-2211-4000-a789-bcdef987654"
+    title: "Advanced Relationship Types"
+  - type: "reference"
+    uri: "mdp://specification/mdp_schema.json"
+    title: "MDP Schema"
+    description: "JSON Schema for MDP metadata"
+---
+
+# Working with MDP Relationships
+
+Document relationships are a powerful feature of the MDP format that allows you to create connections between related documents, building a network of interconnected content.
+
+## Understanding Relationship Types
+
+MDP supports several relationship types:
+
+- **Parent**: A document that contains or encompasses the current document
+- **Child**: A document that is contained by or elaborates on the current document
+- **Related**: A document with a non-hierarchical connection to the current document
+- **Reference**: An external standard or resource related to the current document
+
+## Defining Relationships in MDP
+
+Relationships are defined in the metadata section of an MDP file using the `relationships` field, which contains a list of relationship objects:
+
+```yaml
+relationships:
+  - type: "parent"
+    id: "550e8400-e29b-41d4-a716-446655440000"
+    title: "Parent Document Title"
+  - type: "related"
+    path: "related-document.mdp"
+    description: "A related document"
+```
+
+## Relationship Identifiers
+
+Each relationship must include at least one of the following identifiers:
+
+- `id`: UUID of the referenced document
+- `path`: Path to the referenced document
+- `uri`: URI of the referenced document
+- `cid`: IPFS Content Identifier of the referenced document
+
+Additional fields like `title` and `description` provide human-readable information about the relationship.
+
+## Working with Relationships Programmatically
+
+The MDP Python package makes it easy to work with relationships:
+
+```python
+import mdp
+
+# Load a document
+doc = mdp.Document.load("my_document.mdp")
+
+# Get all relationships
+relationships = doc.relationships
+
+# Get parent relationships only
+parents = doc.get_relationships(type="parent")
+
+# Add a new relationship
+doc.add_relationship(
+    type="related",
+    path="another-document.mdp",
+    title="Another Document"
+)
+
+# Save changes
+doc.save()
+```
+
+## Building Document Networks
+
+By using relationships consistently, you can build rich document networks that help users navigate complex information. Common patterns include:
+
+1. **Hierarchical Structure**: Using parent/child relationships to create document hierarchies
+2. **Document Sequences**: Connecting documents in a sequence using "previous" and "next" relationships
+3. **Reference Networks**: Connecting documents that reference each other
+4. **Topic Clusters**: Grouping documents by topic using related relationships
+
+## Visualizing Relationships
+
+Document relationships can be visualized using network graphs to help users understand the connections between documents. The MDP tools include utilities for generating these visualizations.
+
+## Conclusion
+
+Relationships are a key feature that differentiates MDP from simpler document formats. By leveraging relationships, you can create rich, interconnected document networks that enhance navigation and discovery. 

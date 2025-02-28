@@ -1,0 +1,424 @@
+openapi: 3.1.0
+info:
+  title: MDP (Markdown Data Pack) API
+  description: API specification for working with MDP documents
+  version: 1.0.0
+  contact:
+    name: Datapack Team
+    url: https://github.com/greyhaven-ai/mdp
+
+paths:
+  /documents:
+    get:
+      summary: List documents
+      description: Returns a list of MDP documents
+      operationId: listDocuments
+      parameters:
+        - name: collection
+          in: query
+          description: Filter by collection name
+          schema:
+            type: string
+        - name: tags
+          in: query
+          description: Filter by tags
+          schema:
+            type: array
+            items:
+              type: string
+        - name: author
+          in: query
+          description: Filter by author
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A list of documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DocumentInfo'
+    post:
+      summary: Create document
+      description: Creates a new MDP document
+      operationId: createDocument
+      requestBody:
+        description: Document to create
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Document'
+      responses:
+        '201':
+          description: Created document
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+
+  /documents/{uuid}:
+    get:
+      summary: Get document
+      description: Returns a single MDP document
+      operationId: getDocument
+      parameters:
+        - name: uuid
+          in: path
+          description: Document UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: A document
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+            text/markdown:
+              schema:
+                type: string
+                description: The document in MDP format
+    put:
+      summary: Update document
+      description: Updates an existing MDP document
+      operationId: updateDocument
+      parameters:
+        - name: uuid
+          in: path
+          description: Document UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: Document to update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Document'
+      responses:
+        '200':
+          description: Updated document
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+    delete:
+      summary: Delete document
+      description: Deletes an MDP document
+      operationId: deleteDocument
+      parameters:
+        - name: uuid
+          in: path
+          description: Document UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Document deleted
+
+  /documents/{uuid}/relationships:
+    get:
+      summary: Get document relationships
+      description: Returns the relationships for a document
+      operationId: getDocumentRelationships
+      parameters:
+        - name: uuid
+          in: path
+          description: Document UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: type
+          in: query
+          description: Filter by relationship type
+          schema:
+            type: string
+            enum: [parent, child, related, reference]
+      responses:
+        '200':
+          description: Document relationships
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Relationship'
+
+  /collections:
+    get:
+      summary: List collections
+      description: Returns a list of collections
+      operationId: listCollections
+      responses:
+        '200':
+          description: A list of collections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Collection'
+    post:
+      summary: Create collection
+      description: Creates a new collection
+      operationId: createCollection
+      requestBody:
+        description: Collection to create
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Collection'
+      responses:
+        '201':
+          description: Created collection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+
+  /collections/{id}:
+    get:
+      summary: Get collection
+      description: Returns a single collection
+      operationId: getCollection
+      parameters:
+        - name: id
+          in: path
+          description: Collection ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A collection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+
+  /collections/{id}/documents:
+    get:
+      summary: Get collection documents
+      description: Returns the documents in a collection
+      operationId: getCollectionDocuments
+      parameters:
+        - name: id
+          in: path
+          description: Collection ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Collection documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DocumentInfo'
+
+components:
+  schemas:
+    Document:
+      type: object
+      required:
+        - title
+        - content
+      properties:
+        title:
+          type: string
+          description: The title of the document
+        version:
+          type: string
+          description: The version of the document
+        context:
+          type: string
+          description: Additional context about the document purpose
+        uuid:
+          type: string
+          format: uuid
+          description: Globally unique identifier for the document
+        uri:
+          type: string
+          format: uri
+          description: URI reference for the document in a registry
+        local_path:
+          type: string
+          description: Local filesystem path relative to a defined root
+        cid:
+          type: string
+          description: IPFS Content Identifier (CID) for content addressing
+        author:
+          type: string
+          description: The author of the document
+        contributors:
+          type: array
+          description: List of contributors to the document
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date
+          description: The creation date of the document (ISO 8601)
+        updated_at:
+          type: string
+          format: date
+          description: The last update date of the document (ISO 8601)
+        collection:
+          type: string
+          description: Collection this document belongs to
+        collection_id:
+          type: string
+          description: Unique identifier for the collection
+        collection_id_type:
+          type: string
+          description: Type of identifier used for collection_id (uuid, uri, cid, string)
+          enum: [uuid, uri, cid, string]
+        position:
+          type: integer
+          minimum: 0
+          description: Position in an ordered collection
+        tags:
+          type: array
+          description: List of tags for categorizing the document
+          items:
+            type: string
+        status:
+          type: string
+          description: The status of the document (e.g., draft, published)
+        source_file:
+          type: string
+          description: The original file name if converted
+        source_type:
+          type: string
+          description: The original file type if converted
+        source_url:
+          type: string
+          format: uri
+          description: The URL of the original content if applicable
+        relationships:
+          type: array
+          description: References to related documents
+          items:
+            $ref: '#/components/schemas/Relationship'
+        content:
+          type: string
+          description: The markdown content of the document
+
+    DocumentInfo:
+      type: object
+      required:
+        - title
+        - uuid
+      properties:
+        title:
+          type: string
+          description: The title of the document
+        uuid:
+          type: string
+          format: uuid
+          description: Globally unique identifier for the document
+        cid:
+          type: string
+          description: IPFS Content Identifier (CID) for content addressing
+        author:
+          type: string
+          description: The author of the document
+        created_at:
+          type: string
+          format: date
+          description: The creation date of the document (ISO 8601)
+        updated_at:
+          type: string
+          format: date
+          description: The last update date of the document (ISO 8601)
+        collection:
+          type: string
+          description: Collection this document belongs to
+        collection_id:
+          type: string
+          description: Unique identifier for the collection
+        collection_id_type:
+          type: string
+          description: Type of identifier used for collection_id (uuid, uri, cid, string)
+          enum: [uuid, uri, cid, string]
+        tags:
+          type: array
+          description: List of tags for categorizing the document
+          items:
+            type: string
+        status:
+          type: string
+          description: The status of the document (e.g., draft, published)
+
+    Relationship:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [parent, child, related, reference]
+          description: The type of relationship
+        id:
+          type: string
+          description: UUID of the referenced document
+        path:
+          type: string
+          description: Path to the referenced document
+        uri:
+          type: string
+          format: uri
+          description: URI of the referenced document
+        cid:
+          type: string
+          description: IPFS Content Identifier (CID) of the referenced document
+        title:
+          type: string
+          description: Title of the referenced document
+        description:
+          type: string
+          description: Description of the relationship
+
+    Collection:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: The name of the collection
+        id:
+          type: string
+          description: Unique identifier for the collection
+        id_type:
+          type: string
+          description: Type of identifier used for the collection (uuid, uri, cid, string)
+          enum: [uuid, uri, cid, string]
+        description:
+          type: string
+          description: Description of the collection
+        created_at:
+          type: string
+          format: date
+          description: The creation date of the collection (ISO 8601)
+        updated_at:
+          type: string
+          format: date
+          description: The last update date of the collection (ISO 8601)
+        metadata:
+          type: object
+          description: Additional metadata for the collection
+          additionalProperties: true 

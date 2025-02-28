@@ -1,0 +1,84 @@
+---
+title: "Getting Started with MDP"
+author: "MDP Team"
+version: "1.0.0"
+created_at: "2024-07-01"
+updated_at: "2024-07-01"
+tags: ["tutorial", "introduction", "documentation"]
+status: "published"
+uuid: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+---
+
+# Getting Started with MDP
+
+Welcome to this introduction to the Markdown Data Pack (MDP) file format. MDP combines the readability of Markdown with the structured data capabilities of YAML frontmatter.
+
+## What is MDP?
+
+MDP is a file format designed for document management that balances human readability with machine processability. It uses:
+
+- YAML frontmatter for structured metadata
+- Markdown for the content body
+- A simple, text-based format that works well with version control
+
+## Basic Structure
+
+An MDP file consists of two parts:
+
+1. Metadata (YAML frontmatter) between triple-dash separators (`---`)
+2. Markdown content after the metadata section
+
+## Working with MDP Files
+
+### Creating an MDP File
+
+You can create an MDP file in any text editor. Simply start with triple dashes, add your YAML metadata, close with triple dashes, and then write your content in markdown.
+
+```
+---
+title: "My Document"
+author: "Your Name"
+created_at: "2024-07-01"
+---
+
+# My Document
+
+This is the content of my document.
+```
+
+### Using the MDP Python Package
+
+The `mdp` Python package provides tools for working with MDP files:
+
+```python
+import mdp
+
+# Load an MDP file
+doc = mdp.Document.load("my_document.mdp")
+
+# Access metadata
+print(doc.title)  # "My Document"
+print(doc.metadata["author"])  # "Your Name"
+
+# Access content
+print(doc.content)
+
+# Modify and save
+doc.title = "Updated Document"
+doc.save()
+```
+
+## Next Steps
+
+After understanding the basics, you might want to explore:
+
+1. Document relationships
+2. Collections
+3. Advanced metadata validation
+4. Converting to/from other formats
+
+Check out our other documentation for more detailed information on these topics.
+
+## Conclusion
+
+MDP provides a simple yet powerful way to work with documents that require both human interaction and programmatic processing. Its combination of structured metadata with human-readable content makes it ideal for documentation systems, content management, and knowledge bases. 

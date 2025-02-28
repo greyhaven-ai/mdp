@@ -1,0 +1,368 @@
+---
+description: The MDP rule provides specifications and guidelines for working with Markdown Data Pack (.mdp) files. This rule should be applied when creating, modifying, or implementing parsers for .mdp files, which combine YAML frontmatter metadata with markdown content. The rule contains detailed information about metadata fields, relationship structures, validation requirements, and implementation best practices.
+globs: "**/*.{js,ts,jsx,tsx,py,md}"
+alwaysApply: false
+---
+# MDP (Markdown Data Pack) File Format Specification
+
+@context {
+    "type": "documentation",
+    "purpose": "file_format_specification",
+    "format_version": "1.0.0",
+    "supported_content_types": [
+        "file_format_description",
+        "metadata_specification",
+        "implementation_guidelines",
+        "usage_examples"
+    ]
+}
+
+## Overview
+
+MDP (Markdown Data Pack) is a file format that combines structured metadata with markdown content. It uses YAML frontmatter for metadata, followed by standard markdown text. This format enables rich document management with support for relationships, collections, and semantic annotations while maintaining human readability.
+
+@format_specification {
+    "file_extension": ".mdp",
+    "structure": [
+        "YAML frontmatter",
+        "Markdown content"
+    ],
+    "encoding": "UTF-8",
+    "line_endings": "Platform-independent"
+}
+
+## File Structure
+
+An MDP file has a simple structure:
+
+1. **YAML Frontmatter**: Metadata at the beginning of the file, enclosed between triple-dash separators (`---`)
+2. **Markdown Content**: Standard markdown text following the frontmatter
+
+Example:
+
+```
+---
+title: "Document Title"
+author: "Author Name"
+created_at: "2023-04-20"
+tags: ["documentation", "specification"]
+---
+
+# Document Title
+
+This is the content of the document in markdown format.
+```
+
+## Metadata Specification
+
+### Core Metadata Fields
+
+@metadata_fields {
+    "core": {
+        "title": "Document title (required)",
+        "version": "Document version",
+        "context": "Additional context about the document purpose and how it should be used"
+    },
+    "identification": {
+        "uuid": "Globally unique identifier (recommended)",
+        "uri": "URI reference for the document in a registry",
+        "local_path": "Local filesystem path relative to a defined root",
+        "cid": "IPFS Content Identifier (CID) for content addressing"
+    },
+    "authorship": {
+        "author": "Document author",
+        "contributors": "List of document contributors",
+        "created_at": "Creation date (ISO 8601: YYYY-MM-DD)",
+        "updated_at": "Last update date (ISO 8601: YYYY-MM-DD)"
+    },
+    "organization": {
+        "collection": "Collection this document belongs to",
+        "collection_id": "Unique identifier for the collection",
+        "collection_id_type": "Type of identifier used for collection_id (uuid, uri, cid, string)",
+        "position": "Position in an ordered collection (non-negative integer)",
+        "tags": "List of tags for categorization",
+        "status": "Document status (draft, published, etc.)"
+    },
+    "source": {
+        "source_file": "The original file name if converted",
+        "source_type": "The original file type if converted",
+        "source_url": "The URL of the original content if applicable"
+    },
+    "relationships": {
+        "relationships": "References to related documents"
+    }
+}
+
+### Standard vs Required Fields
+
+In the current implementation, only the "title" field is strictly required. However, it's recommended to include:
+
+- `uuid` - For unique identification
+- `created_at` - For tracking document history
+- `updated_at` - For tracking document changes
+
+If the `uuid` field is not provided when creating a document, the system will automatically generate one.
+
+### Default Values
+
+The system provides certain default values:
+
+- `created_at` - If not specified, set to the current date in ISO 8601 format (YYYY-MM-DD)
+- `uuid` - If not specified, a new UUID v4 is generated
+
+### Custom Metadata Fields
+
+Custom metadata fields can be added with the `x_` prefix to avoid collisions with standard fields:
+
+```yaml
+x_department: "Engineering"
+x_priority: "High"
+x_review_date: "2023-06-15"
+```
+
+### Relationship Structure
+
+Relationships between documents are defined using the `relationships` field, which contains a list of relationship objects:
+
+```yaml
+relationships:
+  - type: "parent"
+    id: "550e8400-e29b-41d4-a716-446655440000"
+    title: "Parent Document Title"
+  - type: "related"
+    path: "related-document.mdp"
+    description: "A related document"
+  - type: "reference"
+    uri: "mdp://organization/project/document"
+  - type: "child"
+    cid: "QmX5fAjkp5B3kJoo..."
+```
+
+Each relationship must have:
+1. A `type` field with one of the valid relationship types
+2. At least one identifier field: `id` (UUID), `uri`, `path`, or `cid`
+
+Valid relationship types:
+- `parent`: Document that contains or encompasses this document
+- `child`: Document that is contained by or elaborates on this document 
+- `related`: Document with a non-hierarchical connection
+- `reference`: External standard or resource
+
+Optional relationship fields:
+- `title`: Title of the related document
+- `description`: Description of the relationship
+
+### URI Formats
+
+MDP supports two URI schemes:
+
+1. **MDP URIs**: `mdp://organization/project/document_path`
+   - Used for referencing documents in a registry
+
+2. **IPFS URIs**: `ipfs://CID`
+   - Used for content-addressed documents in IPFS
+   - CID can be in v0 format (starting with "Qm") or v1 format (starting with "b")
+
+### Collection Structure
+
+Documents can be organized into collections using the collection metadata fields:
+
+```yaml
+collection: "Project Documentation"
+collection_id: "proj-docs-2023"
+collection_id_type: "string"  # Can be "uuid", "uri", "cid", or "string"
+position: 3
+```
+
+Valid collection ID types:
+- `uuid`: A UUID string
+- `uri`: An MDP or IPFS URI
+- `cid`: An IPFS Content Identifier
+- `string`: A simple string identifier (default)
+
+## Implementation Guidelines
+
+@implementation_guidelines {
+    "parsing": "Use a YAML parser for the frontmatter and a markdown parser for the content",
+    "metadata_validation": "Validate required fields and proper types",
+    "uuid_generation": "Generate UUIDs for documents without IDs",
+    "date_formatting": "Use ISO 8601 (YYYY-MM-DD) for date fields",
+    "ipfs_support": "Support for IPFS CIDs and URIs"
+}
+
+When implementing parsers and generators for MDP files:
+
+1. Use proper YAML parsing for frontmatter extraction
+2. Validate all required metadata fields
+3. Ensure proper type validation for metadata values
+4. Use standard date formats (ISO 8601: YYYY-MM-DD)
+5. Validate relationships for proper structure
+6. Preserve markdown formatting during reads/writes
+7. Support IPFS CIDs and URIs for content-addressed documents
+8. Provide functions for creating and validating URIs
+
+## Working with Collections
+
+MDP files can be organized into collections by using collection metadata fields:
+
+```yaml
+collection: "Project Documentation"
+collection_id: "proj-docs-2023"
+collection_id_type: "string"
+position: 3
+```
+
+Collections enable:
+- Logical grouping of related documents
+- Ordered sequences of documents
+- Hierarchical document structures
+- Cross-referencing between documents in the same collection
+
+## Examples
+
+### Basic MDP Document
+
+```
+---
+title: "Getting Started with MDP"
+author: "Documentation Team"
+created_at: "2023-04-15"
+updated_at: "2023-05-20"
+tags: ["tutorial", "beginner"]
+status: "published"
+uuid: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+---
+
+# Getting Started with MDP
+
+This document explains how to create and use MDP files.
+
+## Introduction
+
+MDP (Markdown Data Pack) files combine metadata with markdown content...
+```
+
+### Document with Relationships
+
+```
+---
+title: "Chapter 2: Advanced Features"
+author: "Technical Writer"
+created_at: "2023-04-18"
+collection: "User Manual"
+collection_id: "user-manual-v2"
+collection_id_type: "string"
+position: 2
+relationships:
+  - type: "parent"
+    id: "550e8400-e29b-41d4-a716-446655440000"
+    title: "User Manual"
+  - type: "related"
+    path: "chapter3.mdp"
+    title: "Chapter 3: Configuration"
+  - type: "reference"
+    uri: "ipfs://QmX5fAjkp5B3kJoo..."
+    description: "External reference material"
+---
+
+# Chapter 2: Advanced Features
+
+This chapter covers advanced features of the product.
+```
+
+### Document with IPFS Integration
+
+```
+---
+title: "IPFS Integration Example"
+author: "Blockchain Team"
+created_at: "2023-05-10"
+cid: "QmX5fAjkp5B3kJoo..."
+uri: "ipfs://QmX5fAjkp5B3kJoo..."
+relationships:
+  - type: "reference"
+    cid: "QmZXf7nHGZpaj6KBrwt8LaTR7YGPbZXvnYZ6Ek5"
+    title: "Referenced Content on IPFS"
+---
+
+# IPFS Integration
+
+This document demonstrates integration with IPFS content addressing.
+```
+
+## Implementation Code Example
+
+```python
+# Example code for reading and extracting metadata from MDP files
+def extract_metadata(content: str) -> Tuple[Dict[str, Any], str]:
+    """
+    Extract metadata and content from an MDP file string.
+    
+    Args:
+        content: The content of the MDP file as a string.
+    
+    Returns:
+        A tuple containing the metadata dictionary and the markdown content.
+    """
+    # Check if the content starts with YAML frontmatter
+    match = FRONTMATTER_PATTERN.match(content)
+    
+    if not match:
+        # If no frontmatter is found, return empty metadata and the original content
+        return DEFAULT_METADATA.copy(), content
+    
+    # Extract the YAML frontmatter and the remaining content
+    frontmatter_str = match.group(1)
+    markdown_content = content[match.end():]
+    
+    try:
+        # Parse the YAML frontmatter
+        metadata = yaml.safe_load(frontmatter_str) or {}
+        
+        # Apply default values for missing fields
+        for key, value in DEFAULT_METADATA.items():
+            if key not in metadata:
+                metadata[key] = value
+        
+        return metadata, markdown_content
+    except yaml.YAMLError as e:
+        raise ValueError(f"Invalid YAML frontmatter: {e}")
+```
+
+## Validation Rules
+
+@validation {
+    "required": [
+        "Title field must be present",
+        "UUID must be valid if present",
+        "Dates must follow ISO 8601 format (YYYY-MM-DD)",
+        "Relationships must have a valid type and at least one identifier (id, uri, path, or cid)",
+        "Collection_id must match the specified collection_id_type",
+        "Position must be a non-negative integer"
+    ],
+    "recommended": [
+        "Include created_at and updated_at dates",
+        "Use UUID for document identification",
+        "Add tags for improved searchability",
+        "Include context information where applicable",
+        "Validate IPFS CIDs if used"
+    ]
+}
+
+## Benefits of MDP Format
+
+1. **Human-readable**: Both metadata and content are in text formats easily readable by humans
+2. **Machine-processable**: Structured metadata enables programmatic processing
+3. **Version-control friendly**: Text-based format works well with Git and other VCS
+4. **Flexible**: Can represent various document types and relationships
+5. **Self-contained**: Metadata travels with the content in a single file
+6. **Extendable**: Custom metadata fields can be added without breaking the format
+7. **Content-addressable**: Support for IPFS integration enables decentralized content storage
+
+## Related Tools and Implementations
+
+- Python MDP library for parsing and generating MDP files
+- MDP CLI tools for batch processing
+- MDP validators for ensuring conformance to the specification
+- Integration with various markdown editors and processors
+- IPFS integration for decentralized content storage and retrieval

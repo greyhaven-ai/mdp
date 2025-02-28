@@ -1,0 +1,184 @@
+---
+title: "Working with MDP Collections"
+author: "MDP Team"
+version: "1.0.0"
+created_at: "2024-07-01"
+updated_at: "2024-07-15"
+tags: ["tutorial", "collections", "organization"]
+status: "published"
+uuid: "b9c8d7e6-f5g4-4372-h678-ijklmn987654"
+collection: "MDP Documentation"
+collection_id: "mdp-docs-2024"
+collection_id_type: "string"
+position: 3
+relationships:
+  - type: "parent"
+    id: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+    title: "Getting Started with MDP"
+  - type: "related"
+    id: "a8b7c6d5-e4f3-4372-9567-abcdef123456" 
+    title: "Working with MDP Relationships"
+    description: "Learn about document relationships"
+---
+
+# Working with MDP Collections
+
+Collections are a powerful way to organize MDP documents into meaningful groups. They enable hierarchical organization, logical grouping, and ordered sequences of related documents.
+
+## What is an MDP Collection?
+
+A collection is a group of related MDP documents that share a common `collection_id`. Documents in a collection can:
+
+- Be ordered using the `position` field
+- Share common metadata fields
+- Reference each other using relationships
+- Be processed together with collection-aware tools
+
+## Defining Collection Membership
+
+To make a document part of a collection, add these fields to its metadata:
+
+```yaml
+collection: "User Manual"        # Human-readable name
+collection_id: "user-manual-v2"  # Unique identifier
+collection_id_type: "string"     # Type of identifier (uuid, uri, cid, string)
+position: 3                      # Position in the collection (optional)
+```
+
+The `collection_id` is the key field that links all documents in a collection. The `collection_id_type` specifies the format of the identifier, enabling proper validation and interoperability.
+
+## Collection ID Types
+
+MDP supports several types of collection identifiers:
+
+```yaml
+# UUID example
+collection_id: "550e8400-e29b-41d4-a716-446655440000"
+collection_id_type: "uuid"
+
+# URI example
+collection_id: "mdp://organization/tech-docs/user-manual"
+collection_id_type: "uri"
+
+# IPFS CID example
+collection_id: "QmX5fAjbxbx8pbDcDmyNJS5gBXZcB3zrR9upt9yKvkX4vR"
+collection_id_type: "cid"
+
+# String example (default)
+collection_id: "user-manual-v2"
+collection_id_type: "string"  # Optional, as string is the default
+```
+
+## Creating and Managing Collections
+
+The MDP Python package provides a `Collection` class for working with document collections:
+
+```python
+import mdp
+import uuid
+
+# Create a new collection with UUID identifier
+collection_id = str(uuid.uuid4())
+collection = mdp.Collection(
+    id=collection_id,
+    id_type="uuid",
+    name="User Manual",
+    description="Comprehensive user documentation"
+)
+
+# Add documents to the collection
+collection.add_document("chapter1.mdp")
+collection.add_document("chapter2.mdp", position=2)
+collection.add_document("chapter3.mdp", position=3)
+
+# Save collection metadata
+collection.save("user-manual.collection.mdp")
+
+# Load an existing collection
+collection = mdp.Collection.load("user-manual.collection.mdp")
+
+# Access documents in the collection
+documents = collection.documents
+
+# Access documents in order
+ordered_docs = collection.get_ordered_documents()
+
+# Process all documents in the collection
+collection.export_all("output", format="html")
+```
+
+## Collection Metadata
+
+Collections can have their own metadata, which is typically stored in a collection definition file:
+
+```yaml
+---
+id: "550e8400-e29b-41d4-a716-446655440000"
+id_type: "uuid"
+name: "User Manual"
+description: "Comprehensive user documentation"
+version: "2.0"
+created_at: "2024-07-01"
+updated_at: "2024-07-15"
+authors: ["Documentation Team"]
+tags: ["manual", "documentation"]
+---
+
+# User Manual Collection
+
+This collection contains all chapters of the User Manual.
+```
+
+## Common Collection Use Cases
+
+Different collection ID types are suited for different use cases:
+
+1. **Local Collections** - Use `uuid` for collections managed within a single system:
+   ```yaml
+   collection_id: "550e8400-e29b-41d4-a716-446655440000"
+   collection_id_type: "uuid"
+   ```
+
+2. **Cross-System References** - Use `uri` for collections referenced across systems:
+   ```yaml
+   collection_id: "mdp://organization/project/collection"
+   collection_id_type: "uri"
+   ```
+
+3. **Distributed Content** - Use `cid` for collections stored on IPFS:
+   ```yaml
+   collection_id: "QmX5fAjbxbx8pbDcDmyNJS5gBXZcB3zrR9upt9yKvkX4vR"
+   collection_id_type: "cid"
+   ```
+
+4. **Simple Identifiers** - Use `string` for human-readable identifiers:
+   ```yaml
+   collection_id: "user-manual-2024"
+   collection_id_type: "string"
+   ```
+
+## Working with Collection Hierarchies
+
+Collections can be nested to create hierarchies:
+
+```
+Project Documentation (Collection)
+├── User Guide (Sub-collection)
+│   ├── Getting Started
+│   ├── Basic Usage
+│   └── Advanced Features
+├── API Reference (Sub-collection)
+│   ├── Authentication
+│   ├── Endpoints
+│   └── Examples
+└── Release Notes (Sub-collection)
+    ├── Version 1.0
+    ├── Version 1.1
+    └── Version 2.0
+```
+
+Implement this using the `parent_collection_id` and `parent_collection_id_type` fields or relationships between collection definition files.
+
+## Conclusion
+
+Collections provide a powerful organizational framework for MDP documents. With typed collection identifiers, you can ensure proper validation and interoperability across different systems and storage mechanisms. 

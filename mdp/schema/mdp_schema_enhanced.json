@@ -1,0 +1,245 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MDP Document Schema",
+  "description": "Schema for validating MDP document metadata",
+  "type": "object",
+  "required": ["title"],
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "The title of the document"
+    },
+    "version": {
+      "type": "string",
+      "description": "The semantic version of the document (MAJOR.MINOR.PATCH)",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "examples": ["1.0.0", "2.3.1"]
+    },
+    "latest_version": {
+      "type": "string",
+      "description": "The latest semantic version of the document",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"
+    },
+    "context": {
+      "type": "string",
+      "description": "Additional context about the document, its purpose, and how it should be used"
+    },
+    "uuid": {
+      "type": "string",
+      "description": "Globally unique identifier for the document",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "uri": {
+      "type": "string",
+      "description": "URI reference for the document in a registry"
+    },
+    "local_path": {
+      "type": "string",
+      "description": "Local filesystem path relative to a defined root"
+    },
+    "cid": {
+      "type": "string",
+      "description": "IPFS Content Identifier (CID) for content addressing",
+      "pattern": "^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-zA-Z0-9]{58,})$"
+    },
+    "collection": {
+      "type": "string",
+      "description": "Collection this document belongs to"
+    },
+    "collection_id": {
+      "type": "string",
+      "description": "Unique identifier for the collection"
+    },
+    "collection_id_type": {
+      "type": "string",
+      "description": "Type of identifier used for collection_id",
+      "enum": ["uuid", "uri", "cid", "string"]
+    },
+    "position": {
+      "type": "integer",
+      "description": "Position in an ordered collection",
+      "minimum": 0
+    },
+    "author": {
+      "type": "string",
+      "description": "The author of the document"
+    },
+    "contributors": {
+      "type": "array",
+      "description": "List of contributors to the document",
+      "items": {
+        "type": "string"
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "description": "The creation date of the document (ISO 8601: YYYY-MM-DD)",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "updated_at": {
+      "type": "string",
+      "description": "The last update date of the document (ISO 8601: YYYY-MM-DD)",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "tags": {
+      "type": "array",
+      "description": "List of tags for categorizing the document",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "description": "The status of the document",
+      "examples": ["draft", "published", "archived", "deprecated"]
+    },
+    "source_file": {
+      "type": "string",
+      "description": "The original file name if converted"
+    },
+    "source_type": {
+      "type": "string",
+      "description": "The original file type if converted"
+    },
+    "source_url": {
+      "type": "string",
+      "description": "The URL of the original content if applicable"
+    },
+    "relationships": {
+      "type": "array",
+      "description": "References to related documents",
+      "items": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "The type of relationship",
+            "enum": ["parent", "child", "related", "reference"]
+          },
+          "id": {
+            "type": "string",
+            "description": "UUID of the related document"
+          },
+          "uri": {
+            "type": "string",
+            "description": "URI of the related document"
+          },
+          "path": {
+            "type": "string",
+            "description": "Path to the related document"
+          },
+          "cid": {
+            "type": "string",
+            "description": "IPFS CID of the related document"
+          },
+          "title": {
+            "type": "string",
+            "description": "Title of the related document"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the relationship"
+          }
+        },
+        "anyOf": [
+          { "required": ["id"] },
+          { "required": ["uri"] },
+          { "required": ["path"] },
+          { "required": ["cid"] }
+        ]
+      }
+    },
+    "version_history": {
+      "type": "array",
+      "description": "History of document versions",
+      "items": {
+        "type": "object",
+        "required": ["version", "date"],
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "The semantic version (MAJOR.MINOR.PATCH)",
+            "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"
+          },
+          "date": {
+            "type": "string",
+            "description": "The date this version was created (ISO 8601: YYYY-MM-DD)",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "author": {
+            "type": "string",
+            "description": "The author who created this version"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of changes in this version"
+          },
+          "path": {
+            "type": "string",
+            "description": "Path to the version file"
+          }
+        }
+      }
+    },
+    "branch_name": {
+      "type": "string",
+      "description": "Name of this branch (if document is a branch)"
+    },
+    "branched_from": {
+      "type": "object",
+      "description": "Information about the original document this was branched from",
+      "required": ["document", "version", "date"],
+      "properties": {
+        "document": {
+          "type": "string",
+          "description": "Path to the original document"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the original document at branching time",
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"
+        },
+        "date": {
+          "type": "string",
+          "description": "Date when the branch was created",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        }
+      }
+    },
+    "merge_history": {
+      "type": "array",
+      "description": "History of merges into this document",
+      "items": {
+        "type": "object",
+        "required": ["branch", "date", "from_version", "to_version"],
+        "properties": {
+          "branch": {
+            "type": "string",
+            "description": "Name or path of the branch that was merged"
+          },
+          "date": {
+            "type": "string",
+            "description": "Date when the merge occurred",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "from_version": {
+            "type": "string",
+            "description": "Version of the branch that was merged"
+          },
+          "to_version": {
+            "type": "string",
+            "description": "Resulting version after the merge",
+            "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"
+          }
+        }
+      }
+    }
+  },
+  "patternProperties": {
+    "^x_": {
+      "description": "Custom fields must be prefixed with 'x_'"
+    }
+  },
+  "additionalProperties": false
+} 

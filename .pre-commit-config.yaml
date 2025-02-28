@@ -1,0 +1,20 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.3.0  # Updated Ruff version
+    hooks:
+      - id: ruff  # Run the linter.
+        name: Run Linter Check (Ruff)
+        args: [ --fix ]
+        files: ^(mdp|tests|examples)/
+        types_or: [ python, pyi ]
+      - id: ruff-format  # Run the formatter.
+        name: Run Formatter (Ruff)
+        types_or: [ python, pyi ]
+  - repo: local
+    hooks:
+      - id: ci_type_mypy
+        name: Run Type Check (Mypy)
+        entry: mypy --config-file .mypy.ini
+        language: system
+        types: [python]
+        pass_filenames: false

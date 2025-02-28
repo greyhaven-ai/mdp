@@ -1,0 +1,578 @@
+---
+description: Best practices and guidelines for creating Python pip packages
+globs: "**/*.py", "setup.py", "pyproject.toml"
+alwaysApply: false
+---
+# Python Package Development Best Practices
+
+@context {
+    "type": "documentation",
+    "purpose": "cursor_rules",
+    "format_version": "1.0.0",
+    "supported_content_types": [
+        "guidelines",
+        "examples",
+        "implementations"
+    ]
+}
+
+## Package Naming Conventions
+
+@rules [
+    {
+        "id": "package_naming",
+        "rule": "Use lowercase letters with underscores or hyphens",
+        "severity": "error"
+    },
+    {
+        "id": "package_uniqueness",
+        "rule": "Verify name is unique on PyPI before publishing",
+        "severity": "error"
+    },
+    {
+        "id": "package_descriptiveness",
+        "rule": "Choose descriptive names that reflect purpose",
+        "severity": "warning"
+    },
+    {
+        "id": "import_friendliness",
+        "rule": "Prefer import-friendly names (underscores over hyphens)",
+        "severity": "warning"
+    }
+]
+
+Package names should be:
+- Lowercase letters and numbers only
+- Readable and descriptive
+- Unique on PyPI
+- Short but meaningful
+- Prefer underscores for import-friendly names (`my_package` vs `my-package`)
+
+## Project Structure
+
+@structure {
+    "minimum_requirements": [
+        "pyproject.toml or setup.py",
+        "README.md or README.rst",
+        "LICENSE",
+        "package_name/__init__.py"
+    ],
+    "recommended_files": [
+        "CHANGELOG.md",
+        "docs/",
+        "tests/",
+        ".gitignore",
+        "requirements-dev.txt"
+    ]
+}
+
+### Standard Project Layout
+
+```
+my_package/
+├── .gitignore               # Git ignore file
+├── LICENSE                  # License file
+├── MANIFEST.in              # Package manifest file (if needed)
+├── pyproject.toml           # Modern project configuration
+├── README.md                # Project documentation
+├── requirements-dev.txt     # Development dependencies
+├── setup.py                 # Package setup script (if not using pyproject.toml alone)
+├── my_package/              # Package source directory (same as project name)
+│   ├── __init__.py          # Package initialization
+│   ├── __main__.py          # Optional: For running as module (-m my_package)
+│   ├── cli.py               # Command line interface
+│   └── core.py              # Core functionality
+└── tests/                   # Test directory
+    ├── __init__.py
+    └── test_core.py
+```
+
+## Package Configuration
+
+@implementation {
+    "language": "python",
+    "dependencies": [],
+    "standard_files": [
+        "pyproject.toml",
+        "setup.py",
+        "setup.cfg"
+    ]
+}
+
+### Modern Configuration (pyproject.toml)
+
+```toml
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "my_package"
+version = "0.1.0"
+description = "A brief description of your package"
+readme = "README.md"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.7"
+dependencies = [
+    "requests>=2.25.0",
+    "click>=8.0.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/yourusername/my_package"
+"Bug Tracker" = "https://github.com/yourusername/my_package/issues"
+
+[project.scripts]
+my-command = "my_package.cli:main"
+```
+
+### Traditional setup.py
+
+```python
+from setuptools import setup, find_packages
+
+setup(
+    name="my_package",
+    version="0.1.0",
+    packages=find_packages(),
+    install_requires=[
+        "requests>=2.25.0",
+        "click>=8.0.0",
+    ],
+    entry_points={
+        "console_scripts": [
+            "my-command=my_package.cli:main",
+        ],
+    },
+    python_requires=">=3.7",
+    author="Your Name",
+    author_email="your.email@example.com",
+    description="A brief description of your package",
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
+    url="https://github.com/yourusername/my_package",
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
+)
+```
+
+## Package Initialization
+
+@implementation {
+    "language": "python",
+    "file": "__init__.py",
+    "purpose": "Package initialization"
+}
+
+```python
+"""
+My Package - A brief description of what your package does.
+
+This module provides...
+"""
+
+__version__ = "0.1.0"
+
+# Import main classes and functions to expose them at package level
+from .core import MainClass, main_function
+
+# Define what gets imported with "from my_package import *"
+__all__ = ["MainClass", "main_function"]
+```
+
+## CLI Implementation
+
+@implementation {
+    "language": "python",
+    "file": "cli.py",
+    "recommended_libraries": ["click", "argparse", "typer"]
+}
+
+### Using Click (Recommended)
+
+```python
+"""
+Command-line interface for my_package.
+"""
+
+import click
+from . import __version__
+
+@click.group()
+@click.version_option(version=__version__)
+def cli():
+    """My awesome package command-line interface."""
+    pass
+
+@cli.command()
+@click.argument("input_file", type=click.Path(exists=True))
+@click.option("--output", "-o", default="output.txt", help="Output file path")
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
+def process(input_file, output, verbose):
+    """Process the input file and generate results."""
+    if verbose:
+        click.echo(f"Processing {input_file}, writing to {output}")
+    # Implement your command logic here
+    click.echo("Processing complete!")
+
+def main():
+    """Entry point for the CLI."""
+    cli()
+
+if __name__ == "__main__":
+    main()
+```
+
+### Using Argparse (Standard Library)
+
+```python
+"""
+Command-line interface for my_package using argparse.
+"""
+
+import argparse
+from . import __version__
+
+def main():
+    """Entry point for the CLI."""
+    parser = argparse.ArgumentParser(
+        description="My awesome package command-line interface."
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
+    )
+    
+    subparsers = parser.add_subparsers(dest="command", help="Commands")
+    
+    # Process command
+    process_parser = subparsers.add_parser("process", help="Process input files")
+    process_parser.add_argument("input_file", help="Input file path")
+    process_parser.add_argument(
+        "--output", "-o", default="output.txt", help="Output file path"
+    )
+    process_parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Enable verbose output"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.command == "process":
+        if args.verbose:
+            print(f"Processing {args.input_file}, writing to {args.output}")
+        # Implement your command logic here
+        print("Processing complete!")
+    elif not args.command:
+        parser.print_help()
+
+if __name__ == "__main__":
+    main()
+```
+
+## Development Workflow
+
+@workflow {
+    "required_steps": [
+        "Setup virtual environment",
+        "Install development dependencies",
+        "Write tests",
+        "Build and test locally",
+        "Create distribution packages",
+        "Upload to PyPI"
+    ]
+}
+
+### Development Environment Setup
+
+```bash
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install development dependencies
+pip install -e ".[dev]"  # If you defined dev extras
+# or
+pip install -r requirements-dev.txt
+
+# Run tests
+pytest
+
+# Build distribution packages
+python -m build
+
+# Upload to PyPI
+python -m twine upload dist/*
+```
+
+## Testing Best Practices
+
+@best_practices {
+    "testing": {
+        "frameworks": ["pytest", "unittest"],
+        "coverage": "Use pytest-cov to ensure high test coverage",
+        "organization": "One test file per module, matching module name"
+    }
+}
+
+### Example Test Structure
+
+```
+tests/
+├── __init__.py
+├── conftest.py              # Shared pytest fixtures
+├── test_core.py             # Tests for core.py
+└── test_cli.py              # Tests for cli.py
+```
+
+### Example Test File
+
+```python
+"""Tests for the core module."""
+
+import pytest
+from my_package.core import MainClass
+
+def test_main_class_initialization():
+    """Test that the main class initializes properly."""
+    instance = MainClass()
+    assert instance is not None
+
+def test_main_function():
+    """Test the main function returns expected results."""
+    from my_package.core import main_function
+    result = main_function()
+    assert result == "expected value"
+```
+
+## Documentation
+
+@best_practices {
+    "documentation": {
+        "code": "Use docstrings for all modules, classes, and functions",
+        "style": "Follow Google or NumPy docstring style",
+        "project": "Create comprehensive README and documentation",
+        "tools": ["Sphinx", "MkDocs"]
+    }
+}
+
+### Example Docstring (Google Style)
+
+```python
+def example_function(param1, param2=None):
+    """Brief description of function.
+    
+    Longer description explaining what the function does, its behavior,
+    and any special cases it handles.
+    
+    Args:
+        param1 (str): Description of param1.
+        param2 (int, optional): Description of param2. Defaults to None.
+        
+    Returns:
+        bool: Description of return value.
+        
+    Raises:
+        ValueError: If param1 is empty.
+        
+    Examples:
+        >>> example_function("test", 123)
+        True
+    """
+```
+
+## Distribution and Publishing
+
+@implementation {
+    "language": "bash",
+    "workflow": "distribution",
+    "tools": ["build", "twine"]
+}
+
+```bash
+# Install build tools
+pip install build twine
+
+# Build distribution packages
+python -m build
+
+# Check distribution packages
+twine check dist/*
+
+# Upload to Test PyPI (recommended for testing)
+twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+
+# Upload to PyPI
+twine upload dist/*
+```
+
+## Common Mistakes to Avoid
+
+@mistakes [
+    {
+        "id": "missing_init",
+        "wrong": "Empty package directories without __init__.py",
+        "correct": "Include __init__.py in every package directory",
+        "reason": "Python needs __init__.py to recognize directories as packages"
+    },
+    {
+        "id": "hardcoded_version",
+        "wrong": "Different versions in different files",
+        "correct": "Single source of truth for version",
+        "reason": "Prevents inconsistent version information"
+    },
+    {
+        "id": "missing_license",
+        "wrong": "No license file included",
+        "correct": "Include LICENSE file with appropriate license",
+        "reason": "Required for legal use of your package"
+    },
+    {
+        "id": "poor_documentation",
+        "wrong": "Missing or incomplete documentation",
+        "correct": "Comprehensive README and docstrings",
+        "reason": "Documentation is essential for user adoption"
+    },
+    {
+        "id": "non_semantic_versioning",
+        "wrong": "Arbitrary version numbers",
+        "correct": "Follow semantic versioning (MAJOR.MINOR.PATCH)",
+        "reason": "Helps users understand the impact of updates"
+    }
+]
+
+## Validation Checklist
+
+@validation {
+    "required": [
+        "Package name follows naming conventions",
+        "Basic structure includes all required files",
+        "Valid pyproject.toml or setup.py",
+        "README.md provides clear usage instructions",
+        "LICENSE file is present",
+        "Version is consistently defined",
+        "All dependencies are specified with version constraints",
+        "Tests are provided"
+    ],
+    "recommended": [
+        "Comprehensive documentation",
+        "High test coverage",
+        "CI/CD integration",
+        "Type hints with mypy support",
+        "Dev dependencies separated from runtime dependencies",
+        "CHANGELOG.md to track changes"
+    ]
+}
+
+## Recommended Package Development Tools
+
+@tools {
+    "development": [
+        "pytest - Testing framework",
+        "black - Code formatter",
+        "isort - Import sorter",
+        "flake8 - Linter",
+        "mypy - Static type checker",
+        "pre-commit - Git hooks for validation",
+        "tox - Test automation"
+    ],
+    "documentation": [
+        "Sphinx - Documentation generator",
+        "MkDocs - Documentation site generator",
+        "Read the Docs - Documentation hosting"
+    ],
+    "packaging": [
+        "build - Package builder",
+        "twine - Package uploader",
+        "pip-tools - Dependency management"
+    ]
+}
+
+## Practical Examples
+
+### Complete CLI Package Example
+
+See the file examples in the CLI Implementation section above for practical examples of implementing command-line interfaces.
+
+### Minimal Package Example
+
+```
+minimal_package/
+├── LICENSE
+├── README.md
+├── pyproject.toml
+├── minimal_package/
+│   ├── __init__.py
+│   └── core.py
+└── tests/
+    ├── __init__.py
+    └── test_core.py
+```
+
+## Version Management
+
+@best_practices {
+    "versioning": {
+        "scheme": "Semantic Versioning (MAJOR.MINOR.PATCH)",
+        "single_source": "Maintain a single source of version truth",
+        "automation": "Consider using setuptools_scm for git-based versioning"
+    }
+}
+
+### Version in __init__.py (Single Source)
+
+```python
+"""Package initialization."""
+
+__version__ = "0.1.0"
+```
+
+### Version with setuptools_scm (Git-based)
+
+```toml
+# pyproject.toml
+[build-system]
+requires = ["setuptools>=42", "wheel", "setuptools_scm[toml]>=6.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+```
+
+## Additional Resources
+
+@resources [
+    {
+        "title": "Python Packaging User Guide",
+        "url": "https://packaging.python.org/",
+        "description": "Official Python packaging documentation"
+    },
+    {
+        "title": "Packaging Python Projects",
+        "url": "https://packaging.python.org/tutorials/packaging-projects/",
+        "description": "Step-by-step tutorial for creating packages"
+    },
+    {
+        "title": "PyPI",
+        "url": "https://pypi.org/",
+        "description": "Python Package Index - where packages are published"
+    },
+    {
+        "title": "Click Documentation",
+        "url": "https://click.palletsprojects.com/",
+        "description": "Documentation for the Click CLI library"
+    },
+    {
+        "title": "Cookiecutter-pypackage",
+        "url": "https://github.com/audreyfeldroy/cookiecutter-pypackage",
+        "description": "Template for creating Python packages"
+    }
+]

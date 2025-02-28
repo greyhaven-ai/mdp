@@ -1,0 +1,156 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MDP (Markdown Data Pack) Schema",
+  "description": "Schema for validating MDP document metadata",
+  "type": "object",
+  "required": ["title"],
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "The title of the document"
+    },
+    "version": {
+      "type": "string",
+      "description": "The version of the document"
+    },
+    "context": {
+      "type": "string",
+      "description": "Additional context about the document purpose"
+    },
+    "uuid": {
+      "type": "string",
+      "description": "Globally unique identifier for the document",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "uri": {
+      "type": "string",
+      "description": "URI reference for the document in a registry",
+      "format": "uri"
+    },
+    "local_path": {
+      "type": "string",
+      "description": "Local filesystem path relative to a defined root"
+    },
+    "cid": {
+      "type": "string",
+      "description": "IPFS Content Identifier (CID) for content addressing",
+      "pattern": "^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-zA-Z0-9]{58,})$"
+    },
+    "author": {
+      "type": "string",
+      "description": "The author of the document"
+    },
+    "contributors": {
+      "type": "array",
+      "description": "List of contributors to the document",
+      "items": {
+        "type": "string"
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "description": "The creation date of the document (ISO 8601: YYYY-MM-DD)",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "updated_at": {
+      "type": "string",
+      "description": "The last update date of the document (ISO 8601: YYYY-MM-DD)",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "collection": {
+      "type": "string",
+      "description": "Collection this document belongs to"
+    },
+    "collection_id": {
+      "type": "string",
+      "description": "Unique identifier for the collection"
+    },
+    "collection_id_type": {
+      "type": "string",
+      "description": "Type of identifier used for collection_id (uuid, uri, cid, string)",
+      "enum": ["uuid", "uri", "cid", "string"]
+    },
+    "position": {
+      "type": "integer",
+      "description": "Position in an ordered collection",
+      "minimum": 0
+    },
+    "tags": {
+      "type": "array",
+      "description": "List of tags for categorizing the document",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "description": "The status of the document (e.g., draft, published)"
+    },
+    "source_file": {
+      "type": "string",
+      "description": "The original file name if converted"
+    },
+    "source_type": {
+      "type": "string",
+      "description": "The original file type if converted"
+    },
+    "source_url": {
+      "type": "string",
+      "description": "The URL of the original content if applicable",
+      "format": "uri"
+    },
+    "relationships": {
+      "type": "array",
+      "description": "References to related documents",
+      "items": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["parent", "child", "related", "reference"],
+            "description": "The type of relationship"
+          },
+          "id": {
+            "type": "string",
+            "description": "UUID of the referenced document"
+          },
+          "path": {
+            "type": "string",
+            "description": "Path to the referenced document"
+          },
+          "uri": {
+            "type": "string",
+            "description": "URI of the referenced document",
+            "format": "uri"
+          },
+          "cid": {
+            "type": "string",
+            "description": "IPFS Content Identifier (CID) of the referenced document",
+            "pattern": "^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-zA-Z0-9]{58,})$"
+          },
+          "title": {
+            "type": "string",
+            "description": "Title of the referenced document"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the relationship"
+          }
+        },
+        "oneOf": [
+          {"required": ["id"]},
+          {"required": ["path"]},
+          {"required": ["uri"]},
+          {"required": ["cid"]}
+        ]
+      }
+    }
+  },
+  "patternProperties": {
+    "^x_": {
+      "description": "Custom fields with x_ prefix"
+    }
+  },
+  "additionalProperties": false
+} 
