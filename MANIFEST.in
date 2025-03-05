@@ -1,0 +1,15 @@
+# Include all README files
+include mdp/README.md
+include mdp/commands/README.md
+include mdp/mcp/README.md
+include mdp/tests/README.md
+
+# Include examples
+include mdp/examples/*.mdp
+include mdp/examples/*.md
+
+# Include schema files
+include mdp/schema/*.json
+
+# Include package data
+global-include *.txt *.rst *.md 

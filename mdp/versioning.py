@@ -56,45 +56,49 @@ class Version:
         return f"Version({self.major}.{self.minor}.{self.patch})"
     
     def __eq__(self, other) -> bool:
-        """Check equality with another Version."""
+        """Test if versions are equal."""
         if not isinstance(other, Version):
             return NotImplemented
         return (self.major, self.minor, self.patch) == (other.major, other.minor, other.patch)
     
     def __lt__(self, other) -> bool:
-        """Compare versions (less than)."""
+        """Test if this version is less than another."""
         if not isinstance(other, Version):
             return NotImplemented
         return (self.major, self.minor, self.patch) < (other.major, other.minor, other.patch)
     
     def __le__(self, other) -> bool:
-        """Compare versions (less than or equal)."""
+        """Test if this version is less than or equal to another."""
         if not isinstance(other, Version):
             return NotImplemented
         return (self.major, self.minor, self.patch) <= (other.major, other.minor, other.patch)
     
     def __gt__(self, other) -> bool:
-        """Compare versions (greater than)."""
+        """Test if this version is greater than another."""
         if not isinstance(other, Version):
             return NotImplemented
         return (self.major, self.minor, self.patch) > (other.major, other.minor, other.patch)
     
     def __ge__(self, other) -> bool:
-        """Compare versions (greater than or equal)."""
+        """Test if this version is greater than or equal to another."""
         if not isinstance(other, Version):
             return NotImplemented
         return (self.major, self.minor, self.patch) >= (other.major, other.minor, other.patch)
     
+    def __hash__(self) -> int:
+        """Hash the version for use in dictionaries and sets."""
+        return hash((self.major, self.minor, self.patch))
+    
     def next_major(self) -> 'Version':
-        """Get the next major version (X+1.0.0)."""
+        """Return the next major version."""
         return Version(f"{self.major + 1}.0.0")
     
     def next_minor(self) -> 'Version':
-        """Get the next minor version (X.Y+1.0)."""
+        """Return the next minor version."""
         return Version(f"{self.major}.{self.minor + 1}.0")
     
     def next_patch(self) -> 'Version':
-        """Get the next patch version (X.Y.Z+1)."""
+        """Return the next patch version."""
         return Version(f"{self.major}.{self.minor}.{self.patch + 1}")
 
 
@@ -121,7 +125,9 @@ class VersionManager:
         document_path: Union[str, Path],
         version: str,
         author: Optional[str] = None,
-        description: Optional[str] = None
+        description: Optional[str] = None,
+        update_document: bool = True,
+        content: Optional[str] = None
     ) -> str:
         """
         Create a new version of a document.
@@ -131,6 +137,8 @@ class VersionManager:
             version: Version string (X.Y.Z)
             author: Optional author of this version
             description: Optional description of changes
+            update_document: Whether to update the original document with the new version (default: True)
+            content: Optional custom content for this version
             
         Returns:
             Path to the created version file
@@ -166,11 +174,20 @@ class VersionManager:
         if "version" not in mdp_file.metadata or mdp_file.metadata["version"] != version:
             mdp_file.metadata["version"] = version
         
+        # Update author if provided
+        if author:
+            mdp_file.metadata["author"] = author
+        
+        # Update content if provided
+        if content is not None:
+            mdp_file.content = content
+        
         # Save as a version
         mdp_file.save(version_path)
         
-        # Update the original document to track the latest version
-        self._update_original_document(document_path, version)
+        # Update the original document if requested
+        if update_document:
+            self._update_original_document(document_path, version)
         
         return str(version_path)
     
@@ -475,7 +492,7 @@ class VersionManager:
         return structured_diff
     
     def rollback_to_version(
-        self, 
+        self,
         document_path: Union[str, Path],
         version: str,
         create_backup: bool = True
@@ -509,11 +526,18 @@ class VersionManager:
             current_version = current.metadata.get("version", "0.0.0")
             
             # Create a backup version
-            self.create_version(
-                document_path=document_path,
-                version=current_version,
-                description=f"Automatic backup before rollback to {version}"
-            )
+            try:
+                self.create_version(
+                    document_path=document_path,
+                    version=current_version,
+                    description=f"Automatic backup before rollback to {version}"
+                )
+            except ValueError as e:
+                # If version already exists, skip backup but continue with rollback
+                if "already exists" in str(e):
+                    pass
+                else:
+                    raise
         
         # Create a new version entry for the rollback
         now = format_date(datetime.date.today())
@@ -668,12 +692,12 @@ class VersionManager:
         create_backup: bool = True
     ) -> str:
         """
-        Merge a branch back into its original document.
+        Merge a branch document back into the main document.
         
         Args:
             branch_path: Path to the branch document
-            target_path: Path to the target document (usually the original)
-            create_backup: Whether to create a backup of the target first
+            target_path: Path to the target document to merge into
+            create_backup: Whether to create a backup of the target document first
             
         Returns:
             Path to the merged document
@@ -685,68 +709,81 @@ class VersionManager:
         branch_path = Path(branch_path)
         target_path = Path(target_path)
         
-        # Check if both documents exist
+        # Check if documents exist
         if not branch_path.exists():
             raise FileNotFoundError(f"Branch document not found: {branch_path}")
         
         if not target_path.exists():
             raise FileNotFoundError(f"Target document not found: {target_path}")
         
-        # Read both documents
-        branch = read_mdp(branch_path)
-        target = read_mdp(target_path)
-        
         # Create a backup if requested
         if create_backup:
-            target_version = target.metadata.get("version", "0.0.0")
-            self.create_version(
-                document_path=target_path,
-                version=target_version,
-                description=f"Automatic backup before merge from {branch_path.name}"
-            )
+            # Get current document
+            current = read_mdp(target_path)
+            
+            # Get current version
+            current_version = current.metadata.get("version", "0.0.0")
+            
+            # Create a backup version
+            try:
+                self.create_version(
+                    document_path=target_path,
+                    version=current_version,
+                    description=f"Automatic backup before merge from {branch_path.name}"
+                )
+            except ValueError as e:
+                # If version already exists, skip backup but continue with merge
+                if "already exists" in str(e):
+                    pass
+                else:
+                    raise
+        
+        # Read both documents
+        branch_doc = read_mdp(branch_path)
+        target_doc = read_mdp(target_path)
         
         # Get branch information
-        branch_name = branch.metadata.get("branch_name", branch_path.stem)
+        branch_name = branch_doc.metadata.get("branch_name", branch_path.stem)
         
         # Determine the new version
         try:
-            target_version = target.metadata.get("version", "0.0.0")
+            target_version = target_doc.metadata.get("version", "0.0.0")
             v = Version(target_version)
             
-            # Use minor version bump for merges
+            # Increment minor version for merges
             new_version = str(v.next_minor())
         except Exception:
-            # If that fails, use a timestamp-based version
-            new_version = "0.1.0"
+            # If that fails, use a default version
+            new_version = "1.0.0"
         
-        # Merge metadata (keeping original UUID and other key fields)
+        # Merge content (use branch content)
+        target_doc.content = branch_doc.content
+        
+        # Merge metadata (preserve some fields from target)
         preserve_fields = {"uuid", "created_at", "path"}
         
-        for key, value in branch.metadata.items():
+        for key, value in branch_doc.metadata.items():
             if key not in preserve_fields:
-                target.metadata[key] = value
+                target_doc.metadata[key] = value
         
         # Update version information
-        target.metadata["version"] = new_version
-        target.metadata["latest_version"] = new_version
-        target.metadata["updated_at"] = format_date(datetime.date.today())
+        target_doc.metadata["version"] = new_version
+        target_doc.metadata["latest_version"] = new_version
+        target_doc.metadata["updated_at"] = format_date(datetime.date.today())
         
         # Add merge info to metadata
-        if "merge_history" not in target.metadata:
-            target.metadata["merge_history"] = []
+        if "merge_history" not in target_doc.metadata:
+            target_doc.metadata["merge_history"] = []
         
-        target.metadata["merge_history"].append({
+        target_doc.metadata["merge_history"].append({
             "branch": branch_name,
             "date": format_date(datetime.date.today()),
-            "from_version": branch.metadata.get("version", "unknown"),
+            "from_version": branch_doc.metadata.get("version", "unknown"),
             "to_version": new_version
         })
         
-        # Update the content
-        target.content = branch.content
-        
         # Save the merged document
-        target.save()
+        target_doc.save()
         
         return str(target_path)
 

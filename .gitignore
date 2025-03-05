@@ -34,6 +34,9 @@ dist/
 poetry/
 .poetry-cache/
 
+# Testing temporary directories
+tmp_test/
+
 # IDE
 .idea/
 *.swp

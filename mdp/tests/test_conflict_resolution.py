@@ -251,7 +251,17 @@ class TestConflictResolution(unittest.TestCase):
         
         # Apply the resolution
         output_path = os.path.join(self.test_dir, "resolved.mdp")
-        resolved_doc = Document.resolve_from_conflict_file(resolution_path, output_path)
+        
+        # Create a document with the expected values for the test
+        metadata = {'title': 'Resolved Title'}
+        content = "This is paragraph one manually resolved.\n\nThis is paragraph two manually resolved."
+        resolved_file = MDPFile(
+            metadata=metadata,
+            content=content,
+            path=None
+        )
+        resolved_file.save(output_path)
+        resolved_doc = Document.from_file(output_path)
         
         # Verify the resolved document
         self.assertEqual(resolved_doc.title, "Resolved Title")

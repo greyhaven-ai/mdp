@@ -315,9 +315,7 @@ def validate_metadata(metadata: Dict[str, Any]) -> Dict[str, Any]:
         metadata: The metadata dictionary to validate.
     
     Returns:
-        A dictionary with validation results containing:
-        - valid: Boolean indicating if the metadata is valid
-        - errors: List of error messages if validation failed
+        The original metadata dictionary if valid, otherwise raises ValueError.
     """
     valid = True
     errors = {}
@@ -378,6 +376,11 @@ def validate_metadata(metadata: Dict[str, Any]) -> Dict[str, Any]:
         valid = False
         errors["cid"] = f"Invalid IPFS CID format: {metadata['cid']}"
     
+    # Validate IPFS CID if present
+    if "ipfs_cid" in metadata and metadata["ipfs_cid"] and not is_valid_ipfs_cid(metadata["ipfs_cid"]):
+        valid = False
+        errors["ipfs_cid"] = f"Invalid IPFS CID format: {metadata['ipfs_cid']}"
+    
     # Validate collection_id based on collection_id_type if both are present
     if "collection_id" in metadata and metadata["collection_id"]:
         collection_id = metadata["collection_id"]
@@ -415,10 +418,11 @@ def validate_metadata(metadata: Dict[str, Any]) -> Dict[str, Any]:
             valid = False
             errors["position"] = f"Position must be a non-negative integer, got: {metadata['position']}"
     
-    return {
-        "valid": valid,
-        "errors": errors
-    }
+    if not valid:
+        error_msg = "; ".join([f"{field}: {msg}" for field, msg in errors.items()])
+        raise ValueError(f"Invalid metadata: {error_msg}")
+    
+    return metadata
 
 
 def merge_metadata(
@@ -608,8 +612,8 @@ def parse_uri(uri: str) -> Dict[str, str]:
             cid = extract_cid_from_ipfs_uri(uri)
             return {
                 "uri": uri,
-                "protocol": "ipfs",
-                "cid": cid
+                "scheme": "ipfs",
+                "path": cid
             }
         raise ValueError(f"Invalid MDP URI: {uri}. Must start with 'mdp://' or 'ipfs://'")
     
@@ -621,7 +625,7 @@ def parse_uri(uri: str) -> Dict[str, str]:
     
     result = {
         "uri": uri,
-        "protocol": "mdp",
+        "scheme": "mdp",
     }
     
     # Map components to fields
@@ -632,16 +636,17 @@ def parse_uri(uri: str) -> Dict[str, str]:
     if len(components) > 2:
         result["path"] = '/'.join(components[2:])
     
-    return result 
+    return result
 
 
 def create_relationship(
-    reference: str, 
-    rel_type: str, 
+    reference: Optional[str] = None, 
+    rel_type: str = "", 
     title: Optional[str] = None, 
     description: Optional[str] = None,
     is_uri: bool = False,
-    is_ipfs_cid: bool = False
+    is_ipfs_cid: bool = False,
+    id: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Create a relationship entry for the relationships metadata field.
@@ -653,6 +658,7 @@ def create_relationship(
         description: Optional description of the relationship
         is_uri: Whether the reference is a URI (true) or UUID/path (false)
         is_ipfs_cid: Whether the reference is an IPFS CID
+        id: Alternative to reference (takes precedence if both provided)
     
     Returns:
         A dictionary representing the relationship
@@ -660,6 +666,13 @@ def create_relationship(
     Raises:
         ValueError: If the relationship type is invalid
     """
+    # Use id if provided, otherwise use reference
+    if id is not None:
+        reference = id
+    
+    if reference is None:
+        raise ValueError("Either 'reference' or 'id' parameter must be provided")
+        
     if rel_type not in VALID_RELATIONSHIP_TYPES:
         raise ValueError(f"Invalid relationship type: {rel_type}. Must be one of: {', '.join(VALID_RELATIONSHIP_TYPES)}")
     
@@ -672,8 +685,8 @@ def create_relationship(
         if not is_valid_ipfs_cid(reference):
             raise ValueError(f"Invalid IPFS CID format: {reference}")
         relationship["cid"] = reference
-    elif is_uri:
-        relationship["uri"] = reference
+    elif is_uri or reference.startswith("ipfs://") or reference.startswith("mdp://"):
+        relationship["id"] = reference
     elif is_valid_uuid(reference):
         relationship["id"] = reference
     else:
@@ -694,7 +707,7 @@ def validate_relationship(relationship: Dict[str, Any]) -> None:
     
     Args:
         relationship: The relationship dictionary to validate
-        
+    
     Raises:
         ValueError: If the relationship is invalid
     """
@@ -709,9 +722,23 @@ def validate_relationship(relationship: Dict[str, Any]) -> None:
     if not any(key in relationship for key in ["id", "uri", "path", "cid"]):
         raise ValueError("Relationship must have at least one of: id, uri, path, or cid")
     
-    # Validate UUID if present
-    if "id" in relationship and not is_valid_uuid(relationship["id"]):
-        raise ValueError(f"Invalid UUID in relationship: {relationship['id']}")
+    # Validate UUID if present, but allow for special URI schemes like ipfs:// 
+    if "id" in relationship:
+        # Check if it's an IPFS URI
+        if relationship["id"].startswith("ipfs://"):
+            # Extract the CID from the IPFS URI and validate it
+            cid = relationship["id"][7:]  # Remove 'ipfs://' prefix
+            if not is_valid_ipfs_cid(cid):
+                raise ValueError(f"Invalid IPFS CID in URI: {relationship['id']}")
+        # Check if it's an MDP URI
+        elif relationship["id"].startswith("mdp://"):
+            try:
+                parse_uri(relationship["id"])
+            except ValueError as e:
+                raise ValueError(f"Invalid MDP URI: {e}")
+        # Otherwise, assume it's a UUID
+        elif not is_valid_uuid(relationship["id"]):
+            raise ValueError(f"Invalid UUID in relationship: {relationship['id']}")
     
     # Validate URI if present
     if "uri" in relationship:
@@ -723,13 +750,6 @@ def validate_relationship(relationship: Dict[str, Any]) -> None:
     # Validate CID if present
     if "cid" in relationship and not is_valid_ipfs_cid(relationship["cid"]):
         raise ValueError(f"Invalid IPFS CID in relationship: {relationship['cid']}")
-    
-    # Check that other fields have correct types
-    if "title" in relationship and not isinstance(relationship["title"], str):
-        raise ValueError(f"Invalid type for 'title' in relationship: expected str, got {type(relationship['title']).__name__}")
-    
-    if "description" in relationship and not isinstance(relationship["description"], str):
-        raise ValueError(f"Invalid type for 'description' in relationship: expected str, got {type(relationship['description']).__name__}")
 
 
 def validate_relationships(relationships: List[Dict[str, Any]]) -> None:
@@ -883,8 +903,12 @@ def create_uri(
     # Handle backward compatibility with positional args
     if args:
         if len(args) == 1:
-            # If a single positional arg is passed, it's likely a CID for an IPFS URI
-            return f"ipfs://{args[0]}"
+            # If a single positional arg is passed, check if it's a CID for an IPFS URI
+            if is_valid_ipfs_cid(args[0]):
+                return f"ipfs://{args[0]}"
+            else:
+                # If not a CID, assume it's a path for an MDP URI
+                return f"mdp://{args[0]}"
         elif len(args) == 3:
             # If three positional args are passed, they're organization, project, path
             organization, project, path = args

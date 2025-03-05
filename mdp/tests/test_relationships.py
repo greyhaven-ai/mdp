@@ -120,8 +120,8 @@ class TestRelationshipsFunctions(unittest.TestCase):
         # Create a relationship using string parameters only
         rel = create_relationship(uuid_str, "parent", title="Parent Doc")
         
-        # Pass a string rather than a dict for the relationship
-        updated_metadata = add_relationship_to_metadata(metadata, uuid_str, "parent")
+        # Pass the relationship object to add_relationship_to_metadata
+        updated_metadata = add_relationship_to_metadata(metadata, rel)
         
         # Check that the relationship was added
         self.assertIn("relationships", updated_metadata)
@@ -177,12 +177,13 @@ class TestDocumentRelationships(unittest.TestCase):
             uuid=generate_uuid()
         )
         
-        # Pass string parameters instead of a relationship dict
-        child_metadata = add_relationship_to_metadata(
-            child_metadata, 
+        # Create a relationship object first, then add it to metadata
+        relationship = create_relationship(
             parent.metadata["uuid"], 
-            "parent"
+            "parent",
+            title="Parent Document"
         )
+        child_metadata = add_relationship_to_metadata(child_metadata, relationship)
             
         child_content = "# Child Document\n\nThis is a child document."
         child_path = Path(self.temp_dir) / "child.mdp"
@@ -194,12 +195,13 @@ class TestDocumentRelationships(unittest.TestCase):
             uuid=generate_uuid()
         )
         
-        # Pass string parameters instead of a relationship dict
-        child2_metadata = add_relationship_to_metadata(
-            child2_metadata, 
-            parent.metadata["uuid"], 
-            "parent"
+        # Create a relationship object first, then add it to metadata
+        relationship2 = create_relationship(
+            parent.metadata["uuid"],
+            "parent",
+            title="Parent Document"
         )
+        child2_metadata = add_relationship_to_metadata(child2_metadata, relationship2)
             
         child2_content = "# Child Document 2\n\nThis is another child document."
         child2_path = Path(self.temp_dir) / "child2.mdp"

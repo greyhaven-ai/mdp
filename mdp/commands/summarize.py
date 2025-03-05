@@ -492,7 +492,7 @@ def output_summary(summary: Dict[str, Any], args):
         elif args.format == "csv":
             output_csv(summary, output)
         else:  # text
-            output_text(summary, output, args.type)
+            output_text(summary, args.type, output)
     
     finally:
         # Close output file if we opened one
@@ -606,14 +606,14 @@ def output_csv(summary: Dict[str, Any], output=sys.stdout):
                 writer.writerow([rel_type, count])
 
 
-def output_text(summary: Dict[str, Any], output=sys.stdout, summary_type: str):
+def output_text(summary: Dict[str, Any], summary_type: str = "full", output=sys.stdout):
     """
     Output summary in text format.
     
     Args:
         summary: Summary dictionary
-        output: Output stream
-        summary_type: Type of summary
+        summary_type: Type of summary (default: "full")
+        output: Output stream (default: sys.stdout)
     """
     output.write(f"MDP Summary Report\n")
     output.write("=" * 80 + "\n")

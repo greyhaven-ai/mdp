@@ -40,6 +40,9 @@ def create_parser() -> argparse.ArgumentParser:
         prog="mdp"
     )
     
+    # Add version argument
+    parser.add_argument("--version", action="store_true", help="Show version information")
+    
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
     
     # Info command
@@ -190,6 +193,12 @@ def main(args: Optional[List[str]] = None) -> int:
     """
     parser = create_parser()
     parsed_args = parser.parse_args(args)
+    
+    # Handle version flag before checking for command
+    if hasattr(parsed_args, 'version') and parsed_args.version:
+        from . import __version__
+        print(f"MDP (Markdown Data Pack) version {__version__}")
+        return 0
     
     if not parsed_args.command:
         parser.print_help()
@@ -406,31 +415,38 @@ def _handle_collection_list(args):
 
 
 def _handle_dev(args):
-    """Handle the dev command."""
-    if args.metadata_schema:
-        from .metadata import get_standard_fields
-        schema = get_standard_fields()
+    """Handle development commands."""
+    if args.command == "echo":
+        print(" ".join(args.args))
+        return 0
+    elif args.command == "metadata-schema":
+        from .metadata import get_metadata_schema
+        import json
+        schema = get_metadata_schema(True)
         print(json.dumps(schema, indent=2))
         return 0
-    
-    if args.validate:
-        file_path = Path(args.validate)
-        
-        if not file_path.exists():
-            print(f"Error: File not found: {file_path}", file=sys.stderr)
+    elif args.command == "validate":
+        if not args.validate:
+            print("No file specified for validation")
             return 1
         
-        try:
-            # Just loading the document will validate it
-            Document.from_file(file_path)
-            print(f"Valid MDP file: {file_path}")
+        from .schema.validation import validate_mdp_file
+        results = validate_mdp_file(args.validate)
+        if results.is_valid:
+            print(f"✓ {args.validate} is valid")
             return 0
-        except Exception as e:
-            print(f"Invalid MDP file: {file_path}", file=sys.stderr)
-            print(f"Error: {e}", file=sys.stderr)
+        else:
+            print(f"✗ {args.validate} is not valid:")
+            for error in results.errors:
+                print(f"  - {error}")
             return 1
+            
+    # Add a test function for CLI testing
+    elif args.command == "test":
+        print("Running test mode for CLI testing")
+        return 0
     
-    print("No dev command specified. Use --metadata-schema or --validate.", file=sys.stderr)
+    print(f"Unknown dev command: {args.command}")
     return 1
 
 

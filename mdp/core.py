@@ -112,7 +112,7 @@ def read_mdp(path: str) -> MDPFile:
     return MDPFile(metadata, doc_content, path)
 
 
-def write_mdp(path: str, metadata: Dict[str, Any], content: str) -> str:
+def write_mdp(path: str, metadata: Dict[str, Any], content: str) -> MDPFile:
     """
     Write metadata and content to a file in MDP format.
     
@@ -122,10 +122,11 @@ def write_mdp(path: str, metadata: Dict[str, Any], content: str) -> str:
         content (str): Content to include in the MDP file.
         
     Returns:
-        str: The path where the file was saved.
+        MDPFile: The MDPFile object that was saved.
     """
     mdp_file = MDPFile(metadata, content)
-    return mdp_file.save(path)
+    mdp_file.save(path)
+    return mdp_file
 
 
 def extract_metadata(content: str) -> Tuple[Dict[str, Any], str]:
@@ -619,11 +620,27 @@ def find_documents_by_metadata(directory: str,
                         else:
                             matches = False
                             break
-                    if not matches or doc_value != value:
+                    if not matches:
+                        break
+                    
+                    # Handle list comparisons for nested keys
+                    if isinstance(value, list) and isinstance(doc_value, list):
+                        if not all(v in doc_value for v in value):
+                            matches = False
+                            break
+                    elif doc_value != value:
                         matches = False
                         break
                 # Handle simple keys
-                elif key not in document.metadata or document.metadata[key] != value:
+                elif key not in document.metadata:
+                    matches = False
+                    break
+                # Handle list comparisons for tags and other list fields
+                elif isinstance(value, list) and isinstance(document.metadata[key], list):
+                    if not all(v in document.metadata[key] for v in value):
+                        matches = False
+                        break
+                elif document.metadata[key] != value:
                     matches = False
                     break
             

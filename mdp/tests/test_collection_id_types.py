@@ -20,19 +20,23 @@ class TestCollectionIdTypes(unittest.TestCase):
                 collection_id_type=id_type,
                 title="Test Document"
             )
-            validation = validate_metadata(metadata)
-            self.assertTrue(validation["valid"], f"Valid collection_id_type '{id_type}' failed validation")
+            # If validate_metadata doesn't raise an exception, it's valid
+            try:
+                validate_metadata(metadata)
+                is_valid = True
+            except ValueError:
+                is_valid = False
+            self.assertTrue(is_valid, f"Valid collection_id_type '{id_type}' failed validation")
 
         # Invalid collection_id_type
-        try:
+        invalid_type = "invalid-type"
+        with self.assertRaises(ValueError) as context:
             create_collection_metadata(
                 collection_name="Test Collection",
-                collection_id_type="invalid_type",
+                collection_id_type=invalid_type,
                 title="Test Document"
             )
-            self.fail("Should have raised ValueError for invalid collection_id_type")
-        except ValueError as e:
-            self.assertIn("Invalid collection_id_type", str(e))
+        self.assertIn("Invalid collection_id_type", str(context.exception))
 
     def test_collection_id_uuid_type(self):
         """Test that UUID collection_id validation works correctly."""
@@ -44,22 +48,25 @@ class TestCollectionIdTypes(unittest.TestCase):
             collection_id_type="uuid",
             title="Test Document"
         )
-        validation = validate_metadata(metadata)
-        self.assertTrue(validation["valid"], "Valid UUID collection_id failed validation")
-        self.assertEqual(metadata["collection_id_type"], "uuid")
-
+        # If validate_metadata doesn't raise an exception, it's valid
+        try:
+            validate_metadata(metadata)
+            is_valid = True
+        except ValueError:
+            is_valid = False
+        self.assertTrue(is_valid, "Valid UUID collection_id failed validation")
+    
         # Invalid UUID
         invalid_uuid = "not-a-uuid"
-        try:
-            create_collection_metadata(
+        # Expect ValueError to be raised during creation
+        with self.assertRaises(ValueError) as context:
+            metadata = create_collection_metadata(
                 collection_name="Test Collection",
                 collection_id=invalid_uuid,
                 collection_id_type="uuid",
                 title="Test Document"
             )
-            self.fail("Should have raised ValueError for invalid UUID")
-        except ValueError as e:
-            self.assertIn("Invalid UUID format", str(e))
+        self.assertIn("Invalid UUID format", str(context.exception))
 
     def test_collection_id_uri_type(self):
         """Test that URI collection_id validation works correctly."""
@@ -71,22 +78,25 @@ class TestCollectionIdTypes(unittest.TestCase):
             collection_id_type="uri",
             title="Test Document"
         )
-        validation = validate_metadata(metadata)
-        self.assertTrue(validation["valid"], "Valid URI collection_id failed validation")
-        self.assertEqual(metadata["collection_id_type"], "uri")
-
-        # Invalid URI
-        invalid_uri = "invalid-uri"
+        # If validate_metadata doesn't raise an exception, it's valid
         try:
-            create_collection_metadata(
+            validate_metadata(metadata)
+            is_valid = True
+        except ValueError:
+            is_valid = False
+        self.assertTrue(is_valid, "Valid URI collection_id failed validation")
+    
+        # Invalid URI
+        invalid_uri = "not-a-uri"
+        # Expect ValueError to be raised during creation
+        with self.assertRaises(ValueError) as context:
+            metadata = create_collection_metadata(
                 collection_name="Test Collection",
                 collection_id=invalid_uri,
                 collection_id_type="uri",
                 title="Test Document"
             )
-            self.fail("Should have raised ValueError for invalid URI")
-        except ValueError as e:
-            self.assertIn("Invalid URI format", str(e))
+        self.assertIn("Invalid URI format", str(context.exception))
 
     def test_collection_id_cid_type(self):
         """Test that CID collection_id validation works correctly."""
@@ -98,10 +108,14 @@ class TestCollectionIdTypes(unittest.TestCase):
             collection_id_type="cid",
             title="Test Document"
         )
-        validation = validate_metadata(metadata)
-        self.assertTrue(validation["valid"], "Valid CIDv0 collection_id failed validation")
-        self.assertEqual(metadata["collection_id_type"], "cid")
-
+        # If validate_metadata doesn't raise an exception, it's valid
+        try:
+            validate_metadata(metadata)
+            is_valid = True
+        except ValueError:
+            is_valid = False
+        self.assertTrue(is_valid, "Valid CIDv0 collection_id failed validation")
+    
         # Valid CIDv1
         valid_cid_v1 = "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi"
         metadata = create_collection_metadata(
@@ -110,21 +124,25 @@ class TestCollectionIdTypes(unittest.TestCase):
             collection_id_type="cid",
             title="Test Document"
         )
-        validation = validate_metadata(metadata)
-        self.assertTrue(validation["valid"], "Valid CIDv1 collection_id failed validation")
-
+        # If validate_metadata doesn't raise an exception, it's valid
+        try:
+            validate_metadata(metadata)
+            is_valid = True
+        except ValueError:
+            is_valid = False
+        self.assertTrue(is_valid, "Valid CIDv1 collection_id failed validation")
+    
         # Invalid CID
         invalid_cid = "not-a-cid"
-        try:
-            create_collection_metadata(
+        # Expect ValueError to be raised during creation
+        with self.assertRaises(ValueError) as context:
+            metadata = create_collection_metadata(
                 collection_name="Test Collection",
                 collection_id=invalid_cid,
                 collection_id_type="cid",
                 title="Test Document"
             )
-            self.fail("Should have raised ValueError for invalid CID")
-        except ValueError as e:
-            self.assertIn("Invalid IPFS CID format", str(e))
+        self.assertIn("Invalid IPFS CID format", str(context.exception))
 
     def test_collection_id_string_type(self):
         """Test that string collection_id validation works correctly."""
@@ -136,9 +154,13 @@ class TestCollectionIdTypes(unittest.TestCase):
             collection_id_type="string",
             title="Test Document"
         )
-        validation = validate_metadata(metadata)
-        self.assertTrue(validation["valid"], "String collection_id failed validation")
-        self.assertEqual(metadata["collection_id_type"], "string")
+        # If validate_metadata doesn't raise an exception, it's valid
+        try:
+            validate_metadata(metadata)
+            is_valid = True
+        except ValueError:
+            is_valid = False
+        self.assertTrue(is_valid, "String collection_id failed validation")
 
     def test_default_collection_id_type(self):
         """Test that the default collection_id_type is 'string'."""
@@ -149,8 +171,13 @@ class TestCollectionIdTypes(unittest.TestCase):
             title="Test Document"
         )
         self.assertEqual(metadata["collection_id_type"], "string")
-        validation = validate_metadata(metadata)
-        self.assertTrue(validation["valid"], "Default collection_id_type failed validation")
+        # If validate_metadata doesn't raise an exception, it's valid
+        try:
+            validate_metadata(metadata)
+            is_valid = True
+        except ValueError:
+            is_valid = False
+        self.assertTrue(is_valid, "Default collection_id_type failed validation")
 
     def test_collection_id_type_in_metadata_validation(self):
         """Test that validate_metadata correctly validates collection_id based on collection_id_type."""
@@ -161,22 +188,22 @@ class TestCollectionIdTypes(unittest.TestCase):
             "collection_id": "not-a-uuid",
             "collection_id_type": "uuid"
         }
-        
+    
         # This should fail validation
-        validation = validate_metadata(metadata)
-        self.assertFalse(validation["valid"])
-        self.assertIn("collection_id", validation["errors"])
-        
-        # Fix the UUID
-        metadata["collection_id"] = str(uuid.uuid4())
-        validation = validate_metadata(metadata)
-        self.assertTrue(validation["valid"])
-        
-        # Test with invalid collection_id_type
-        metadata["collection_id_type"] = "invalid_type"
-        validation = validate_metadata(metadata)
-        self.assertFalse(validation["valid"])
-        self.assertIn("collection_id_type", validation["errors"])
+        with self.assertRaises(ValueError) as context:
+            validate_metadata(metadata)
+        self.assertIn("Invalid UUID format for collection_id", str(context.exception))
+    
+        # Valid UUID should pass validation
+        valid_uuid = str(uuid.uuid4())
+        metadata["collection_id"] = valid_uuid
+        # If validate_metadata doesn't raise an exception, it's valid
+        try:
+            validate_metadata(metadata)
+            is_valid = True
+        except ValueError:
+            is_valid = False
+        self.assertTrue(is_valid, "Valid UUID collection_id failed validation")
 
 
 if __name__ == "__main__":

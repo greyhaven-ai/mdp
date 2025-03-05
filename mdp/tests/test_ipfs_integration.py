@@ -54,9 +54,13 @@ class TestIPFSIntegration(unittest.TestCase):
             ipfs_cid=valid_cid
         )
         
-        # Validate the metadata
-        validation_result = validate_metadata(metadata)
-        self.assertTrue(validation_result["valid"])
+        # Validate the metadata - should not raise an exception
+        try:
+            validate_metadata(metadata)
+            is_valid = True
+        except ValueError:
+            is_valid = False
+        self.assertTrue(is_valid)
         self.assertEqual(metadata["ipfs_cid"], valid_cid)
         
         # Test with invalid CID
@@ -65,9 +69,10 @@ class TestIPFSIntegration(unittest.TestCase):
             ipfs_cid="not-a-valid-cid"
         )
         
-        invalid_result = validate_metadata(invalid_metadata)
-        self.assertFalse(invalid_result["valid"])
-        self.assertIn("ipfs_cid", invalid_result["errors"])
+        # Should raise ValueError for invalid CID
+        with self.assertRaises(ValueError) as context:
+            validate_metadata(invalid_metadata)
+        self.assertIn("Invalid IPFS CID format", str(context.exception))
 
     def test_ipfs_uri_functions(self):
         """Test URI creation and parsing with IPFS CIDs."""
@@ -130,7 +135,7 @@ class TestIPFSIntegration(unittest.TestCase):
         other_cid = "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi"
         doc.add_relationship(
             id=f"ipfs://{other_cid}",
-            rel_type="reference",
+            relationship_type="reference",
             title="Referenced IPFS Document"
         )
         

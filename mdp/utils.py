@@ -91,9 +91,16 @@ def resolve_by_path(
         if not file_path.is_absolute() and base_path:
             file_path = base_path / file_path
         
-        # Try to read the file
+        # Try to read the file directly
         if file_path.exists() and file_path.is_file():
             return read_mdp(file_path)
+            
+        # If file doesn't exist, try to find it using pattern matching
+        if base_path:
+            matching_files = find_mdp_files(base_path)
+            for found_path in matching_files:
+                if found_path.name == file_path.name:
+                    return read_mdp(found_path)
     except (FileNotFoundError, ValueError):
         pass
     
@@ -102,7 +109,8 @@ def resolve_by_path(
 
 def resolve_by_uuid(
     uuid: str, 
-    base_path: Optional[Path] = None
+    base_path: Optional[Path] = None,
+    search_dirs: Optional[List[Path]] = None
 ) -> Optional[MDPFile]:
     """
     Resolve a reference by UUID.
@@ -110,6 +118,7 @@ def resolve_by_uuid(
     Args:
         uuid: The UUID to resolve
         base_path: Optional base path to search in
+        search_dirs: Optional list of directories to search in
         
     Returns:
         The resolved MDPFile or None if not found
@@ -117,17 +126,29 @@ def resolve_by_uuid(
     # This is a stub implementation that would need to be connected
     # to a proper UUID registry or document store
     
-    # For local-only implementation, we can search for files with matching UUID
+    # Add search directories to check
+    dirs_to_search = []
+    if search_dirs:
+        dirs_to_search.extend(search_dirs)
     if base_path:
+        dirs_to_search.append(base_path)
+    
+    # If we have no directories to search, return None
+    if not dirs_to_search:
+        return None
+        
+    # For local-only implementation, we can search for files with matching UUID
+    for directory in dirs_to_search:
         try:
             # Find all MDP files in the directory
-            mdp_files = find_mdp_files(base_path, recursive=True)
+            mdp_files = find_mdp_files(directory, recursive=True)
             
             # Check each file for matching UUID
             for file_path in mdp_files:
                 try:
                     mdp_file = read_mdp(file_path)
-                    if mdp_file.metadata.get("uuid") == uuid:
+                    # Check both uuid and id fields in metadata
+                    if mdp_file.metadata.get("uuid") == uuid or mdp_file.metadata.get("id") == uuid:
                         return mdp_file
                 except:
                     # Skip files with errors
@@ -140,7 +161,8 @@ def resolve_by_uuid(
 
 def resolve_by_uri(
     uri: str, 
-    base_path: Optional[Path] = None
+    base_path: Optional[Path] = None,
+    search_dirs: Optional[List[Path]] = None
 ) -> Optional[MDPFile]:
     """
     Resolve a reference by URI.
@@ -148,16 +170,30 @@ def resolve_by_uri(
     Args:
         uri: The URI to resolve
         base_path: Optional base path (not used for URIs)
+        search_dirs: Optional list of directories to search in
         
     Returns:
         The resolved MDPFile or None if not found
     """
-    # This is a stub implementation that would need to be connected
-    # to a central registry or server
+    # Parse the URI to determine what we're looking for
+    uri_parts = parse_uri(uri)
     
-    # For local-only implementation, we currently can't resolve URIs
-    # A full implementation would need to connect to a network service
+    if not uri_parts:
+        return None
+        
+    # If it's a UUID URI, use resolve_by_uuid
+    if uri_parts.get("type") == "uuid":
+        uuid_value = uri_parts.get("path")
+        if uuid_value:
+            return resolve_by_uuid(uuid_value, base_path, search_dirs)
+            
+    # If it's a path URI, use resolve_by_path
+    elif uri_parts.get("type") == "path":
+        path_value = uri_parts.get("path")
+        if path_value:
+            return resolve_by_path(path_value, base_path)
     
+    # For other URI types, we would need to implement appropriate resolvers
     return None
 
 
